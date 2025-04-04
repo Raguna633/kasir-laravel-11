@@ -14,7 +14,7 @@ class UserTableSeeder extends Seeder
      */
     public function run()
     {
-        $users = array(
+        $users = [
             [
                 'name' => 'Administrator',
                 'email' => 'admin@gmail.com',
@@ -29,7 +29,7 @@ class UserTableSeeder extends Seeder
                 'foto' => '/img/pplg.png',
                 'level' => 2
             ]
-        );
+        ];
 
         array_map(function (array $user) {
             User::query()->updateOrCreate(

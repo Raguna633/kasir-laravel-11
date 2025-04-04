@@ -27,7 +27,7 @@ class LaporanController extends Controller
     public function getData($awal, $akhir)
     {
         $no = 1;
-        $data = array();
+        $data = [];
         $pendapatan = 0;
         $total_pendapatan = 0;
 
@@ -42,7 +42,7 @@ class LaporanController extends Controller
             $pendapatan = $total_penjualan - $total_pembelian - $total_pengeluaran;
             $total_pendapatan += $pendapatan;
 
-            $row = array();
+            $row = [];
             $row['DT_RowIndex'] = $no++;
             $row['tanggal'] = tanggal_indonesia($tanggal, false);
             $row['penjualan'] = format_uang($total_penjualan);
