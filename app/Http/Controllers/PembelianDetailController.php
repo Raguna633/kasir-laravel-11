@@ -29,12 +29,12 @@ class PembelianDetailController extends Controller
         $detail = PembelianDetail::with('produk')
             ->where('id_pembelian', $id)
             ->get();
-        $data = array();
+        $data = [];
         $total = 0;
         $total_item = 0;
 
         foreach ($detail as $item) {
-            $row = array();
+            $row = [];
             $row['kode_produk'] = '<span class="label label-success">'. $item->produk['kode_produk'] .'</span';
             $row['nama_produk'] = $item->produk['nama_produk'];
             $row['harga_beli']  = 'Rp. '. format_uang($item->harga_beli);

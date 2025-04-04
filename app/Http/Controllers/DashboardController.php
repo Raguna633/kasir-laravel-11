@@ -23,8 +23,8 @@ class DashboardController extends Controller
         $tanggal_awal = date('Y-m-01');
         $tanggal_akhir = date('Y-m-d');
 
-        $data_tanggal = array();
-        $data_pendapatan = array();
+        $data_tanggal = [];
+        $data_pendapatan = [];
 
         while (strtotime($tanggal_awal) <= strtotime($tanggal_akhir)) {
             $data_tanggal[] = (int) substr($tanggal_awal, 8, 2);

@@ -6,7 +6,7 @@ function format_uang ($angka) {
 
 function terbilang ($angka) {
     $angka = abs($angka);
-    $baca  = array('', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas');
+    $baca  = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
     $terbilang = '';
 
     if ($angka < 12) { // 0 - 11
@@ -32,12 +32,12 @@ function terbilang ($angka) {
 
 function tanggal_indonesia($tgl, $tampil_hari = true)
 {
-    $nama_hari  = array(
+    $nama_hari  = [
         'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jum\'at', 'Sabtu'
-    );
-    $nama_bulan = array(1 =>
+    ];
+    $nama_bulan = [1 =>
         'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    );
+    ];
 
     $tahun   = substr($tgl, 0, 4);
     $bulan   = $nama_bulan[(int) substr($tgl, 5, 2)];

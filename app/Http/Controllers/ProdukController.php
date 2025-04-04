@@ -276,7 +276,7 @@ class ProdukController extends Controller
 
     public function cetakBarcode(Request $request)
     {
-        $dataproduk = array();
+        $dataproduk = [];
         foreach ($request->id_produk as $id) {
             $produk = Produk::find($id);
             $dataproduk[] = $produk;
