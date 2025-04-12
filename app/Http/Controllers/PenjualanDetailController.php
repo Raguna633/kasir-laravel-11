@@ -33,7 +33,7 @@ class PenjualanDetailController extends Controller
 
     public function data($id)
     {
-        $penjualan = Penjualan::findOrFail($id); // Menggunakan ID langsung, bukan session
+        $penjualan = Penjualan::findOrFail($id);
         $detail = PenjualanDetail::with(['produk', 'produk.produkSatuan'])
             ->where('id_penjualan', $id)
             ->get();

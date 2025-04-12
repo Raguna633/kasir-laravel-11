@@ -73,7 +73,7 @@
                                 <span class="input-group-button">
                                     <a type="button" href="{{ route('transaksi.baru') }}" class="btn btn-info btn-flat">
                                         <i class="fa fa-plus"></i> Transaksi Baru |
-                                        <span class="badge bg-secondary">ctrl+c</span>
+                                        <span class="badge bg-secondary">alt+n</span>
                                     </a>
                                 </span>
                             </div>

@@ -23,7 +23,7 @@
                 @enderror
             </div>
             <div class="form-group has-feedback @error('password') has-error @enderror">
-                <input type="password" name="password" class="form-control" placeholder="Password" required>
+                <input type="password" name="password" class="form-control" placeholder="Password" required minlength="3" maxlength="12">
                 <span class="glyphicon glyphicon-lock form-control-feedback"></span>
                 @error('password')
                     <span class="help-block">{{ $message }}</span>

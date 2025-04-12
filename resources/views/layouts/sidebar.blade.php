@@ -58,54 +58,12 @@
                 </li>
                 <li>
                     <a href="{{ route('penjualan.index') }}">
-                        <i class="fa fa-upload"></i> <span>Penjualan</span>
+                        <i class="fa fa-upload"></i> <span>Riwayat Penjualan</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ route('transaksi.baru') }}">
                         <i class="fa fa-cart-arrow-down"></i> <span>Transaksi Baru</span>
-                    </a>
-                </li>
-                {{-- <li>
-                    <a href="{{ route('transaksi.index') }}">
-                        <i class="fa fa-cart-arrow-down"></i> <span>Transaksi Aktif</span>
-                    </a>
-                </li> --}}
-                {{-- <li class="treeview">
-                <a href="#">
-                    <i class="fa fa-cart-arrow-down"></i>
-                    <span>Transaksi Aktif</span>
-                    <span class="pull-right-container">
-                        <i class="fa fa-angle-left pull-right"></i>
-                    </span>
-                </a>
-                <ul class="treeview-menu">
-                    
-                    
-                    <li>
-                        <a href="{{ route('transaksi.index') }}"><i class="fa fa-clock-o"></i> Transaksi Sebelumnya</a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="tampilDraft()"><i class="fa fa-list"></i> Daftar Draft
-                            Transaksi</a>
-                    </li>
-                </ul>
-            </li> --}}
-                <li class="header">REPORT</li>
-                <li>
-                    <a href="{{ route('laporan.index') }}">
-                        <i class="fa fa-file-pdf-o"></i> <span>Laporan</span>
-                    </a>
-                </li>
-                <li class="header">SYSTEM</li>
-                <li>
-                    <a href="{{ route('user.index') }}">
-                        <i class="fa fa-users"></i> <span>User</span>
-                    </a>
-                </li>
-                <li>
-                    <a href="{{ route('setting.index') }}">
-                        <i class="fa fa-cogs"></i> <span>Pengaturan</span>
                     </a>
                 </li>
                 <li class="header">REPORT</li>
@@ -147,8 +105,8 @@
     <!-- /.sidebar -->
 </aside>
 <script>
-    // Mousetrap.bind('ctrl+c', function() {
-    //     window.location.href = '{{ route('transaksi.baru') }}';
-    // });
+    Mousetrap.bind('alt+n', function() {
+        window.location.href = '{{ route('transaksi.baru') }}';
+    });
 </script>
 

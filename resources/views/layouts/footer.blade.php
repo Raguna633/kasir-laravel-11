@@ -1,6 +1,6 @@
 <footer class="main-footer">
     <div class="pull-right hidden-xs">
-        <b>Version</b> 1.2
+        <b>Version</b> 2.0
     </div>
     <div class="logo">
         <img src="{{ asset('img/tefatie.png') }}" alt="Company Logo" class="company-logo">

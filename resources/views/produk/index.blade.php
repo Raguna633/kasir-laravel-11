@@ -151,6 +151,7 @@
             const fieldKodeProduk = $('#kode_produk');
             fieldKodeProduk.removeClass('is-invalid is-valid');
             $('#kode-produk-error, #kode-produk-valid').remove();
+            $('#nama-produk-error, #nama-produk-valid').remove();
             const kodeOri = $('#original_kode_produk');
             kodeOri.val('');
             const satuanContainer = $('#produk-satuan-container');
@@ -187,6 +188,7 @@
             const fieldKodeProduk = $('#kode_produk');
             fieldKodeProduk.removeClass('is-invalid is-valid');
             $('#kode-produk-error, #kode-produk-valid').remove();
+            $('#nama-produk-error, #nama-produk-valid').remove();
             const satuanContainer = $('#produk-satuan-container');
             satuanContainer.empty();
             satuanContainer.append(`
@@ -382,7 +384,8 @@
                         nama_produk: nama
                     },
                     success: function(response) {
-                        $('#nama-produk-error, #nama-produk-valid').remove();
+                        $('#nama-produk-error, #nama-produk-valid')
+                        .remove();
 
                         if (response.exists) {
                             var errorMessage =

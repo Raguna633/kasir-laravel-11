@@ -20,7 +20,7 @@
                 <br><br>
                 <a href="{{ route('transaksi.baru') }}" class="btn btn-success btn-lg">Transaksi Baru
                     <br>
-                    <span class="badge bg-secondary">ctrl+c</span>
+                    <span class="badge bg-secondary">alt+n</span>
                 </a>
                 <br><br><br>
             </div>

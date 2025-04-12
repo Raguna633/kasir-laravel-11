@@ -21,6 +21,8 @@ class CekLevel
             return $next($request);
         }
 
-        return redirect()->route('dashboard');
+        \Log::warning('Akses ditolak untuk user ID: ' . auth()->id() . ', Level: ' . auth()->user()->level);
+
+        return abort(403, 'Akses tidak diizinkan.');
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-// use PDF;
 use App\Models\Member;
 use App\Models\Produk;
 use App\Models\Setting;
@@ -316,7 +315,7 @@ class PenjualanController extends Controller
             ->get();
 
         $pdf = PDF::loadView('penjualan.nota_besar', compact('setting', 'penjualan', 'detail'));
-        $pdf->setPaper(0, 0, 609, 440, 'potrait');
+        $pdf->setPaper([0, 0, 609, 440], 'potrait');
         return $pdf->stream('Transaksi-' . date('Y-m-d-his') . '.pdf');
     }
 }

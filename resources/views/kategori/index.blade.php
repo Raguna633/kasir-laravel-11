@@ -58,7 +58,7 @@
                         table.ajax.reload();
                     })
                     .fail((errors) => {
-                        alert('Tidak dapat menyimpan data');
+                        alert('Tidak dapat menyimpan data, nama kategori mungkin sudah ada');
                         return;
                     });
             }

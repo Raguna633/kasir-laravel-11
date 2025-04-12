@@ -1,12 +1,12 @@
 @extends('layouts.master')
 
 @section('title')
-    Daftar Penjualan
+    Riwayat Penjualan
 @endsection
 
 @section('breadcrumb')
     @parent
-    <li class="active">Daftar Penjualan</li>
+    <li class="active">Riwayat Penjualan</li>
 @endsection
 
 @section('content')
@@ -37,8 +37,6 @@
     </div>
 </div>
 
-
-
 @includeIf('penjualan.detail')
 @endsection
 
@@ -54,8 +52,7 @@
                 url: '{{ route('penjualan.data') }}',
                 type: 'GET',
                 dataSrc: function(json) {
-                    console.log(json); // Menampilkan response di console
-
+                    console.log(json);
                     // Jika json adalah objek, ambil array dari properti yang sesuai, misalnya 'data'
                     if (Array.isArray(json.data)) {
                         return json.data.filter(function(item) {
