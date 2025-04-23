@@ -407,13 +407,24 @@
                 });
             table2 = $('.table-produk').DataTable();
 
-            $(document).on('input', '.quantity', function() {
+            $(document).on('change', '.quantity', function() {
                 let id = $(this).data('id');
-                let jumlah = parseInt($(this).val());
+                // ganti koma jadi titik:
+                let raw = $(this).val().toString().replace(/,/g, '.');
+                let jumlah = parseFloat(raw);
 
-                if (jumlah < 1) {
-                    $(this).val(1);
-                    alert('Jumlah tidak boleh kurang dari 1');
+                // Jika user hanya mengetik “0.” (belum selesai), jangan validasi dulu
+                if (raw.endsWith(',')) {
+                    return;
+                }
+                
+                table.ajax.reload(() => loadForm($('#diskon').val()));
+
+                if (isNaN(jumlah) || jumlah <= 0) {
+                    alert(
+                        'Jumlah harus angka desimal > 0, gunakan titik sebagai pemisah desimal (misal 0.5).'
+                    );
+                    $(this).val('0.1');
                     return;
                 }
                 if (jumlah > 10000) {
@@ -427,11 +438,11 @@
                         '_method': 'put',
                         'jumlah': jumlah
                     })
-                    .done(response => {
-                        $(this).on('mouseout', function() {
-                            table.ajax.reload(() => loadForm($('#diskon').val()));
-                        });
-                    })
+                    // .done(response => {
+                    //     $(this).on('blur', function() {
+                    //         table.ajax.reload(() => loadForm($('#diskon').val()));
+                    //     });
+                    // })
                     .fail(errors => {
                         alert('Jumlah melebihi stok yang tersedia');
                         return;

@@ -13,6 +13,12 @@ class PenjualanDetail extends Model
     protected $primaryKey = 'id_penjualan_detail';
     protected $guarded = [];
 
+    protected $casts = [
+        'jumlah' => 'float',
+        'harga_jual_eceran' => 'float',
+        // dst…
+      ];
+
     public function produk()
     {
         return $this->hasOne(Produk::class, 'id_produk', 'id_produk');

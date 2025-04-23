@@ -43,57 +43,69 @@ class PenjualanDetailController extends Controller
         $total_item = 0;
 
         foreach ($detail as $item) {
-            $row = [];
-            $row['kode_produk'] = '<span class="label label-success">' . $item->produk->kode_produk . '</span>';
-            $row['nama_produk'] = $item->produk->nama_produk;
-
-            // **Dropdown Pilihan Satuan**
-            $row['produk_satuan'] = '<select class="form-control input-sm produk-satuan" data-id="' . $item->id_penjualan_detail . '">';
+            // prepare dropdown for satuan
+            $satuanOptions = '<select class="form-control input-sm produk-satuan" data-id="' . $item->id_penjualan_detail . '">';
             foreach ($item->produk->produkSatuan as $satuan) {
                 $selected = $item->id_produk_satuan == $satuan->id ? 'selected' : '';
-                $harga_satuan = $penjualan->tipe_pembeli == 'eceran' ? $satuan->harga_jual_eceran : $satuan->harga_jual_borongan;
-                $row['produk_satuan'] .= '<option value="' . $satuan->id . '" ' . $selected . '>' . $satuan->satuan . ' - Rp. ' . format_uang($harga_satuan) . '</option>';
+                $harga_satuan = $penjualan->tipe_pembeli === 'eceran'
+                    ? $satuan->harga_jual_eceran
+                    : $satuan->harga_jual_borongan;
+                $satuanOptions .= '<option value="' . $satuan->id . '" ' . $selected . '>' .
+                    $satuan->satuan . ' - Rp. ' . format_uang($harga_satuan) .
+                    '</option>';
             }
-            $row['produk_satuan'] .= '</select>';
+            $satuanOptions .= '</select>';
 
-            // **Ambil Harga Sesuai Satuan yang Dipilih**
-            $harga_jual = 0;
-            foreach ($item->produk->produkSatuan as $satuan) {
-                if ($item->id_produk_satuan == $satuan->id) {
-                    $harga_jual = $penjualan->tipe_pembeli == 'eceran' ? $satuan->harga_jual_eceran : $satuan->harga_jual_borongan;
-                }
+            // determine harga jual sesuai satuan terpilih
+            $harga_jual = $item->produk->produkSatuan
+                ->where('id', $item->id_produk_satuan)
+                ->first();
+            if ($harga_jual) {
+                $harga_jual = $penjualan->tipe_pembeli === 'eceran'
+                    ? $harga_jual->harga_jual_eceran
+                    : $harga_jual->harga_jual_borongan;
+            } else {
+                $harga_jual = 0;
             }
 
-            // **Field Jumlah**
-            $row['jumlah'] = '<input type="number" class="form-control input-sm quantity" data-id="' . $item->id_penjualan_detail . '" value="' . $item->jumlah . '">';
-            $row['max'] = $item->produk->stok; // Stok utama produk
+            // input jumlah dengan presisi desimal
+            $jumlahInput = '<input type="number" step="0.1" min="0.1" '
+                . 'class="form-control  input-sm quantity" '
+                . 'data-id="' . $item->id_penjualan_detail . '" '
+                . 'value="' . $item->jumlah . '">';
 
-            // **Hitung Subtotal (Harga * Jumlah - Diskon)**
+            // hitung subtotal
             $subtotal = ($harga_jual * $item->jumlah) * (1 - $item->diskon / 100);
 
-            $row['diskon'] = $item->diskon . '%';
-            $row['subtotal'] = 'Rp. ' . format_uang($subtotal);
-            $row['aksi'] = '<div class="btn-group">
-                            <button onclick="deleteData(`' . route('transaksi.destroy', $item->id_penjualan_detail) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                        </div>';
-
-            $data[] = $row;
+            $data[] = [
+                'kode_produk'     => '<span class="label label-success">' . $item->produk->kode_produk . '</span>',
+                'nama_produk'     => $item->produk->nama_produk,
+                'produk_satuan'   => $satuanOptions,
+                'jumlah'          => $jumlahInput,
+                'max'             => $item->produk->stok, // restore stok + ukuran lama
+                'diskon'          => $item->diskon . '%',
+                'subtotal'        => 'Rp. ' . format_uang($subtotal),
+                'aksi'            => '<div class="btn-group">'
+                    . '<button onclick="deleteData(`' . route('transaksi.destroy', $item->id_penjualan_detail) . '`)" '
+                    . 'class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>'
+                    . '</div>',
+            ];
 
             $total += $subtotal;
             $total_item += $item->jumlah;
         }
 
-        // Tambahkan total transaksi ke dalam array data
+        // tambahkan total & total_item tersembunyi
         $data[] = [
-            'kode_produk' => '<div class="total hide">' . $total . '</div><div class="total_item hide">' . $total_item . '</div>',
-            'nama_produk' => '',
+            'kode_produk'   => '<div class="total hide">' . $total . '</div>'
+                . '<div class="total_item hide">' . $total_item . '</div>',
+            'nama_produk'   => '',
             'produk_satuan' => '',
-            'harga_jual_eceran' => '',
-            'jumlah' => '',
-            'max' => '',
-            'diskon' => '',
-            'subtotal' => '',
-            'aksi' => '',
+            'jumlah'        => '',
+            'max'           => '',
+            'diskon'        => '',
+            'subtotal'      => '',
+            'aksi'          => '',
         ];
 
         return datatables()
@@ -106,9 +118,9 @@ class PenjualanDetailController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'id_penjualan' => 'required|exists:penjualan,id_penjualan',
-            'id_produk' => 'required|exists:produk,id_produk',
-            'id_produk_satuan' => 'nullable|exists:produk_satuan,id',
+            'id_penjualan'       => 'required|exists:penjualan,id_penjualan',
+            'id_produk'          => 'required|exists:produk,id_produk',
+            'id_produk_satuan'   => 'nullable|exists:produk_satuan,id',
         ]);
 
         $penjualan = Penjualan::findOrFail($request->id_penjualan);
@@ -118,52 +130,37 @@ class PenjualanDetailController extends Controller
 
         $produk = Produk::findOrFail($request->id_produk);
 
-        $satuan = $request->id
-            ? ProdukSatuan::find($request->id)
-            : $produk->produkSatuan()->where('satuan', 'pcs')->first();
+        $satuan = $request->id_produk_satuan
+            ? ProdukSatuan::find($request->id_produk_satuan)
+            : $produk->produkSatuan()->first();
 
         if (!$satuan) {
             return response()->json(['message' => 'Satuan produk tidak ditemukan'], 400);
         }
 
-        $detail = PenjualanDetail::where('id_penjualan', $request->id_penjualan)
-            ->where('id_produk', $request->id_produk)
-            ->first();
+        $detail = PenjualanDetail::firstOrNew([
+            'id_penjualan' => $penjualan->id_penjualan,
+            'id_produk'    => $produk->id_produk,
+        ]);
 
-        if ($detail) {
-            $newQuantity = $detail->jumlah + 1;
-            if ($newQuantity > $produk->stok) {
-                return response()->json(['message' => 'Jumlah melebihi stok yang tersedia'], 400);
-            }
-
-            $detail->jumlah = $newQuantity;
-            $detail->subtotal = $satuan->harga_jual_eceran * $newQuantity;
-            $detail->id_produk_satuan = $satuan->id;
-            $detail->harga_jual_eceran = $satuan->harga_jual_eceran;
-            $detail->update();
-        } else {
-            if (1 > $produk->stok) {
-                return response()->json(['message' => 'Stok produk tidak mencukupi'], 400);
-            }
-
-            $detail = new PenjualanDetail();
-            $detail->id_penjualan = $request->id_penjualan;
-            $detail->id_produk = $produk->id_produk;
-            $detail->id_produk_satuan = $satuan->id;
-            $detail->harga_jual_eceran = $satuan->harga_jual_eceran;
-            $detail->jumlah = 1;
-            $detail->diskon = 0;
-            $detail->subtotal = $satuan->harga_jual_eceran;
-            $detail->save();
+        // jika baru, set quantity = 1, else tambahkan 1
+        $jumlahBaru = $detail->exists ? ($detail->jumlah + 1) : 1;
+        if ($jumlahBaru > $produk->stok) {
+            return response()->json(['message' => 'Jumlah melebihi stok yang tersedia'], 400);
         }
 
-        $produk->stok -= $detail->jumlah;
+        $detail->id_produk_satuan    = $satuan->id;
+        $detail->harga_jual_eceran   = $satuan->harga_jual_eceran;
+        $detail->jumlah              = $jumlahBaru;
+        $detail->diskon              = 0;
+        $detail->subtotal            = $satuan->harga_jual_eceran * $jumlahBaru;
+        $detail->save();
+
+        // update stok produk
+        $produk->stok -= 1;
         $produk->save();
 
-        return response()->json([
-            'message' => 'Data berhasil disimpan',
-            'detail' => $detail,
-        ], 200);
+        return response()->json(['message' => 'Data berhasil disimpan', 'detail' => $detail], 200);
     }
 
     public function updateSatuan(Request $request, $id)
@@ -187,15 +184,25 @@ class PenjualanDetailController extends Controller
 
     public function update(Request $request, $id)
     {
-        $detail = PenjualanDetail::find($id);
-        $produk = Produk::find($detail->id_produk);
+        $detail = PenjualanDetail::findOrFail($id);
+        $produk = Produk::findOrFail($detail->id_produk);
 
-        if ($request->jumlah > $produk->stok) {
+        $jumlah = (float) $request->input('jumlah');
+        if ($jumlah <= 0) {
+            return response()->json(['message' => 'Jumlah harus lebih besar dari 0'], 422);
+        }
+        // restore stok lama sebelum validasi
+        $available = $produk->stok + $detail->jumlah;
+        if ($jumlah > $available) {
             return response()->json(['message' => 'Jumlah melebihi stok yang tersedia'], 400);
         }
 
-        $detail->jumlah = $request->jumlah;
-        $detail->subtotal = $detail->harga_jual_eceran * $request->jumlah;
+        // perbarui stok
+        $produk->stok = $available - $jumlah;
+        $produk->save();
+
+        $detail->jumlah   = $jumlah;
+        $detail->subtotal = round($detail->harga_jual_eceran * $jumlah * (1 - $detail->diskon / 100), 2);
         $detail->save();
 
         return response()->json('Data berhasil diperbarui', 200);
@@ -204,9 +211,14 @@ class PenjualanDetailController extends Controller
 
     public function destroy($id)
     {
-        $detail = PenjualanDetail::find($id);
+        $detail = PenjualanDetail::findOrFail($id);
+        // kembalikan stok
+        $produk = Produk::find($detail->id_produk);
+        if ($produk) {
+            $produk->stok += $detail->jumlah;
+            $produk->save();
+        }
         $detail->delete();
-
         return response(null, 204);
     }
 
