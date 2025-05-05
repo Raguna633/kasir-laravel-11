@@ -22,8 +22,9 @@ class KategoriController extends Controller
             ->addColumn('aksi', function ($kategori) {
                 return '
                 <div class="btn-group">
-                    <button onclick="editForm(`'. route('kategori.update', $kategori->id_kategori) .'`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
-                    <button onclick="deleteData(`'. route('kategori.destroy', $kategori->id_kategori) .'`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
+                    <button onclick="showDetail(`' . route('kategori.show', $kategori->id_kategori) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-eye"></i></button>
+                    <button onclick="editForm(`' . route('kategori.update', $kategori->id_kategori) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
+                    <button onclick="deleteData(`' . route('kategori.destroy', $kategori->id_kategori) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
                 </div>
                 ';
             })
@@ -42,10 +43,35 @@ class KategoriController extends Controller
 
     public function show($id)
     {
-        $kategori = Kategori::find($id);
-
-        return response()->json($kategori);
+        $kategori = Kategori::with('produk')->findOrFail($id);
+        $produk = $kategori->produk;
+        return response()->json([
+            'nama_kategori' => $kategori->nama_kategori,
+            'produk'        => $produk->map(fn($p) => [
+                'kode'  => $p->kode_produk,
+                'nama'  => $p->nama_produk,
+                'beli'  => $p->harga_beli,
+                'jual'  => $p->harga_jual, // atau kolom Anda
+                'stok'  => $p->stok,
+            ]),
+        ]);
     }
+
+    public function showDetail($id)
+    {
+        $kategori = Kategori::with('produk')->findOrFail($id);
+        return response()->json([
+            'nama_kategori' => $kategori->nama_kategori,
+            'produk'        => $kategori->produk->map(fn($p) => [
+                'kode'  => $p->kode_produk,
+                'nama'  => $p->nama_produk,
+                'beli'  => $p->harga_beli,
+                'jual'  => $p->harga_jual, // atau kolom Anda
+                'stok'  => $p->stok,
+            ]),
+        ]);
+    }
+
 
     public function update(Request $request, $id)
     {

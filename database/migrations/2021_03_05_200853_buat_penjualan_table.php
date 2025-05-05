@@ -24,6 +24,7 @@ class BuatPenjualanTable extends Migration
             $table->integer('id_user');
             $table->integer('hutang')->default(0);
             $table->boolean('status')->default(0); // 0 = Draft, 1 = Final
+            $table->json('struk')->nullable();
             $table->timestamps();
         });
     }

@@ -92,9 +92,8 @@
 </div>
 
 <script>
-    let satuanCount = 1; // Awalnya mulai dari 1 karena satuan default sudah ada
+    let satuanCount = 1;
 
-    // Fungsi untuk memperbarui satuanCount agar tetap berurutan
     function updateSatuanCount() {
         let lastIndex = 0;
 
@@ -115,7 +114,6 @@
         satuanCount = lastIndex + 1;
     }
 
-    // Fungsi untuk mendapatkan daftar satuan yang sudah dipilih
     function getSelectedSatuan() {
         let selectedSatuan = [];
         $('.satuan-select').each(function() {
@@ -127,7 +125,6 @@
         return selectedSatuan;
     }
 
-    // Tambahkan satuan baru
     $('#add-satuan').on('click', function() {
         updateSatuanCount();
 
@@ -137,6 +134,7 @@
         <div class="col-lg-2">
             <select class="form-control satuan-select" name="produk_satuan[${satuanCount}][satuan]" required>
                 <option value="">Pilih Satuan</option>
+                <option value="pcs">PCS/option>
                 <option value="renteng">Renteng</option>
                 <option value="lusin">Lusin</option>
                 <option value="dus">Dus</option>
@@ -183,11 +181,10 @@
         }
     });
 
-    // Hapus field satuan
     $(document).on('click', '.btn-remove-satuan', function() {
         const id = $(this).data('id');
         $(`#satuan-${id}`).remove();
-        updateSatuanCount(); // Update satuanCount setelah penghapusan
+        updateSatuanCount();
     });
 
     // Event untuk mengembalikan dropdown jika input custom dihapus

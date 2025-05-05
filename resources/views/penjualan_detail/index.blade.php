@@ -417,7 +417,7 @@
                 if (raw.endsWith(',')) {
                     return;
                 }
-                
+
                 table.ajax.reload(() => loadForm($('#diskon').val()));
 
                 if (isNaN(jumlah) || jumlah <= 0) {
@@ -454,18 +454,20 @@
                     $(this).val(0).select();
                 }
 
-                loadForm($(this).val());
-            });
-
-            $('#diterima').on('input', function() {
-                if ($(this).val() == "") {
-                    $(this).val(0).select();
+                if ($(this) != 0) {
+                    loadForm($(this).val());
                 }
-
-                loadForm($('#diskon').val(), $(this).val());
-            }).focus(function() {
-                $(this).select();
             });
+
+            let debounceTimer;
+            $('#diterima').on('input', function() {
+                const val = Number(this.value.replace(/,/g, '.')) || 0;
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    loadForm($('#diskon').val(), val);
+                }, 300);
+            });
+
 
             $('.btn-simpan').on('click', function() {
                 $('.form-penjualan').submit();

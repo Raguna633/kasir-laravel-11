@@ -12,6 +12,7 @@
                         <th width="5%">No</th>
                         <th>Kode</th>
                         <th>Nama</th>
+                        <th>Kategori</th>
                         <th>Harga Jual Eceran</th>
                         <th>Harga Jual Borongan</th>
                         <th>Stok</th>
@@ -19,10 +20,11 @@
                     </thead>
                     <tbody>
                         @foreach ($produk as $key => $item)
-                            <tr>
+                        <tr> 
                                 <td width="5%">{{ $key + 1 }}</td>
                                 <td><span class="label label-success">{{ $item->kode_produk }}</span></td>
                                 <td>{{ $item->nama_produk }}</td>
+                                <td>{{ $item->kategori->nama_kategori }}</td>
                                 <td>
                                     @foreach ($item->produkSatuan as $satuan)
                                         <div>
@@ -39,12 +41,12 @@
                                 </td>
                                 <td>{{ $item->stok }}</td>
                                 <td>
-                                    @php
+                                    {{-- @php
                                         $satuanDefault = $item->produkSatuan->firstWhere('satuan', 'pcs');
-                                    @endphp
+                                    @endphp --}}
                                     <a href="#"
                                         class="btn btn-primary btn-xs btn-flat {{ $item->stok == 0 ? 'disabled' : '' }}"
-                                        onclick="event.preventDefault(); {{ $item->stok == 0 || !$satuanDefault ? '' : "pilihProduk('$item->id_produk', '$item->kode_produk', '$satuanDefault->id_satuan')" }}">
+                                        onclick="event.preventDefault(); {{ $item->stok == 0 ? '' : "pilihProduk('$item->id_produk', '$item->kode_produk')" }}">
                                         <i class="fa fa-check-circle"></i>
                                         Pilih
                                     </a>

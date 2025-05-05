@@ -16,8 +16,7 @@ class PenjualanDetail extends Model
     protected $casts = [
         'jumlah' => 'float',
         'harga_jual_eceran' => 'float',
-        // dst…
-      ];
+    ];
 
     public function produk()
     {
@@ -26,5 +25,10 @@ class PenjualanDetail extends Model
     public function produkSatuan()
     {
         return $this->belongsTo(ProdukSatuan::class, 'id_produk_satuan', 'id');
+    }
+
+    public function kategori()
+    {
+        return $this->hasMany(Kategori::class, 'id_kategori', 'id_kategori');
     }
 }

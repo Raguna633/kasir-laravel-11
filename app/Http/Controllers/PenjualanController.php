@@ -23,6 +23,8 @@ class PenjualanController extends Controller
             ->orderBy('id_penjualan', 'desc')
             ->get();
 
+        $setting = Setting::first();
+
         return datatables()
             ->of($penjualan)
             ->addIndexColumn()
@@ -59,14 +61,26 @@ class PenjualanController extends Controller
             ->editColumn('kasir', function ($penjualan) {
                 return $penjualan->user->name ?? '';
             })
-            ->addColumn('aksi', function ($penjualan) {
+            ->addColumn('aksi', function ($penjualan) use ($setting) {
                 if (auth()->user()->level == 1) {
+                   if ($setting->tipe_nota == 1) {
                     return '
-                <div class="btn-group">
-                    <button onclick="showDetail(`' . route('penjualan.show', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></button>
-                    <button onclick="deleteData(`' . route('penjualan.destroy', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                </div>
-                ';
+                    <div class="btn-group">
+                        <button onclick="showDetail(`' . route('penjualan.show', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></button>
+                        <button onclick="deleteData(`' . route('penjualan.destroy', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
+                        <button onclick="notaKecil(`' . route('penjualan.printnota_kecil', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-print"></i></button>
+                        </div>
+                    ';
+                   }
+                   else {
+                    return '
+                    <div class="btn-group">
+                        <button onclick="showDetail(`' . route('penjualan.show', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></button>
+                        <button onclick="deleteData(`' . route('penjualan.destroy', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
+                        <button onclick="notaBesar(`' . route('penjualan.printnota_besar', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-print"></i></button>
+                        </div>
+                    ';
+                   }
                 } else {
                     return '
                 <div class="btn-group">
@@ -211,7 +225,7 @@ class PenjualanController extends Controller
 
     public function show($id)
     {
-        $penjualan = Penjualan::findOrFail($id); // Ambil transaksi berdasarkan ID
+        $penjualan = Penjualan::findOrFail($id);
         $detail = PenjualanDetail::with(['produk', 'produk.produkSatuan'])
             ->where('id_penjualan', $id)
             ->get();
@@ -312,6 +326,43 @@ class PenjualanController extends Controller
 
         $detail = PenjualanDetail::with(['produk', 'produkSatuan'])
             ->where('id_penjualan', session('id_penjualan'))
+            ->get();
+
+        $pdf = PDF::loadView('penjualan.nota_besar', compact('setting', 'penjualan', 'detail'));
+        $pdf->setPaper([0, 0, 609, 440], 'potrait');
+        return $pdf->stream('Transaksi-' . date('Y-m-d-his') . '.pdf');
+    }
+
+    public function printnotaKecil($id)
+    {
+        $setting = Setting::first();
+        $penjualan = Penjualan::with(['details.produk', 'details.produkSatuan'])
+            ->find($id);
+
+        if (!$penjualan) {
+            abort(404);
+        }
+
+        $detail = PenjualanDetail::with(['produk', 'produkSatuan'])
+            ->where('id_penjualan', $id)
+            ->get();
+
+        return view('penjualan.nota_kecil', compact('setting', 'penjualan', 'detail'));
+    }
+
+
+    public function printnotaBesar($id)
+    {
+        $setting = Setting::first();
+        $penjualan = Penjualan::with(['details.produk', 'details.produkSatuan'])
+            ->find($id);
+
+        if (!$penjualan) {
+            abort(404);
+        }
+
+        $detail = PenjualanDetail::with(['produk', 'produkSatuan'])
+            ->where('id_penjualan', $id)
             ->get();
 
         $pdf = PDF::loadView('penjualan.nota_besar', compact('setting', 'penjualan', 'detail'));

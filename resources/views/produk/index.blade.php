@@ -65,15 +65,15 @@
     <script>
         let table;
 
-        $.ajax({
-            url: '{{ route('produk.data') }}',
-            success: function(response) {
-                console.log(response); // Periksa apakah data valid
-            },
-            error: function(xhr) {
-                console.error('Error:', xhr.responseText);
-            }
-        });
+        // $.ajax({
+        //     url: '{{ route('produk.data') }}',
+        //     success: function(response) {
+        //         console.log(response); // Periksa apakah data valid
+        //     },
+        //     error: function(xhr) {
+        //         console.error('Error:', xhr.responseText);
+        //     }
+        // });
 
 
         $(function() {
@@ -160,7 +160,7 @@
             <div class="form-group row" id="satuan-0">
                             <label class="col-lg-2 col-lg-offset-1 control-label">Satuan</label>
                             <div class="col-lg-2">
-                                <input type="text" class="form-control" name="produk_satuan[0][satuan]" value="pcs" readonly>
+                                <input type="text" class="form-control" name="produk_satuan[0][satuan]" value="pcs">
                             </div>
                             <div class="col-lg-4">
                                 <input type="number" class="form-control" name="produk_satuan[0][harga_jual_eceran]" placeholder="Harga Jual Eceran" required>
@@ -232,7 +232,7 @@
                             let satuanField;
                             if (isDefault) {
                                 satuanField =
-                                    `<input type="text" class="form-control" name="produk_satuan[${index}][satuan]" value="pcs" readonly>`;
+                                    `<input type="text" class="form-control" name="produk_satuan[${index}][satuan]" value="pcs">`;
                             } else if (isCustom) {
                                 satuanField = `
                             <input type="text" class="form-control custom-satuan" name="produk_satuan[${index}][satuan]" value="${satuan.satuan}" required>
@@ -241,6 +241,7 @@
                                 satuanField = `
                             <select class="form-control satuan-select" name="produk_satuan[${index}][satuan]" required>
                                 <option value="">Pilih Satuan</option>
+                                <option value="pcs" ${satuan.satuan === 'pcs' ? 'selected' : ''}>PCS</option>
                                 <option value="renteng" ${satuan.satuan === 'renteng' ? 'selected' : ''}>Renteng</option>
                                 <option value="lusin" ${satuan.satuan === 'lusin' ? 'selected' : ''}>Lusin</option>
                                 <option value="dus" ${satuan.satuan === 'dus' ? 'selected' : ''}>Dus</option>

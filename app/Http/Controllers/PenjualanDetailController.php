@@ -9,17 +9,21 @@ use App\Models\Penjualan;
 use App\Models\ProdukSatuan;
 use Illuminate\Http\Request;
 use App\Models\PenjualanDetail;
+use App\Models\Kategori;
 
 class PenjualanDetailController extends Controller
 {
     public function index()
     {
-        $produk = Produk::with('produkSatuan')
+        $produk = Produk::with('produkSatuan', 'kategori')
             ->orderBy('nama_produk', 'asc')
             ->get();
         $member = Member::orderBy('nama')->get();
         $diskon = Setting::first()->diskon ?? 0;
         $drafts = Penjualan::where('status', 0)->get();
+
+        // $kategori = Produk::with('kategori')->get();
+        // dd($produk);
 
         if ($id_penjualan = session('id_penjualan')) {
             $penjualan = Penjualan::find($id_penjualan);
@@ -34,7 +38,7 @@ class PenjualanDetailController extends Controller
     public function data($id)
     {
         $penjualan = Penjualan::findOrFail($id);
-        $detail = PenjualanDetail::with(['produk', 'produk.produkSatuan'])
+        $detail = PenjualanDetail::with(['produk', 'produk.produkSatuan', 'produk.kategori'])
             ->where('id_penjualan', $id)
             ->get();
 
