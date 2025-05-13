@@ -2,7 +2,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <input type="hidden" name="original_kode_produk" id="original_kode_produk" value="">
         <input type="hidden" name="original_nama_produk" id="original_nama_produk" value="">
-        <form action="" method="post" class="form-horizontal">
+        <form action="" method="post" class="form-horizontal" id="form-produk">
             @csrf
             @method('post')
 
@@ -18,7 +18,7 @@
                         <div class="col-lg-6">
                             <input type="number" id="kode_produk" name="kode_produk" kode="kode_produk"
                                 placeholder="Isi dengan nomor barcode produk" class="form-control" autofocus>
-                            <span class="help-block with-errors"></span>
+                            {{-- <span class="help-block with-errors"></span> --}}
                         </div>
                     </div>
                     <div class="form-group row">
@@ -26,7 +26,7 @@
                         <div class="col-lg-6">
                             <input type="text" name="nama_produk" id="nama_produk" class="form-control" required
                                 autofocus>
-                            <span class="help-block with-errors"></span>
+                            {{-- <span class="help-block with-errors"></span> --}}
                         </div>
                     </div>
                     <div class="form-group row">
@@ -83,6 +83,9 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-sm btn-flat btn-primary"><i class="fa fa-save"></i> Simpan</button>
+                    {{-- <button type="button" class="btn btn-secondary" id="btn-refresh-satuan">
+                        <i class="fa fa-refresh"></i> Refresh Daftar Satuan
+                    </button> --}}
                     <button type="button" class="btn btn-sm btn-flat btn-warning" data-dismiss="modal"><i
                             class="fa fa-arrow-circle-left"></i> Batal</button>
                 </div>
@@ -96,88 +99,91 @@
 
     function updateSatuanCount() {
         let lastIndex = 0;
-
         $('#produk-satuan-container .form-group').each(function() {
-            const nameAttr = $(this).find('select[name^="produk_satuan["], input[name^="produk_satuan["]').attr(
-                'name');
+            const nameAttr = $(this)
+                .find('select[name^="produk_satuan["], input[name^="produk_satuan["]')
+                .attr('name');
             if (nameAttr) {
                 const match = nameAttr.match(/\[([0-9]+)\]/);
                 if (match) {
-                    const index = parseInt(match[1], 10);
-                    if (index > lastIndex) {
-                        lastIndex = index;
-                    }
+                    const idx = parseInt(match[1], 10);
+                    lastIndex = Math.max(lastIndex, idx);
                 }
             }
         });
-
         satuanCount = lastIndex + 1;
     }
 
     function getSelectedSatuan() {
-        let selectedSatuan = [];
+        return $('.satuan-select').toArray()
+            .map(el => $(el).val())
+            .filter(v => v && v !== 'custom');
+    }
+
+    function buildSatuanOptions(selected = '') {
+        const opts = ['<option value="">Pilih Satuan</option>']
+            .concat(
+                window.availableSatuan.map(s => `<option value="${s}" ${s===selected?'selected':''}>${s}</option>`)
+            )
+            .concat('<option value="custom">Custom</option>');
+        return opts.join('');
+    }
+
+    function renderAllSatuanSelects() {
         $('.satuan-select').each(function() {
-            const val = $(this).val();
-            if (val && val !== "custom") {
-                selectedSatuan.push(val);
-            }
+            const cur = $(this).val();
+            $(this).html(buildSatuanOptions(cur));
         });
-        return selectedSatuan;
     }
 
     $('#add-satuan').on('click', function() {
         updateSatuanCount();
-
-        const satuanInput = `
-    <div class="form-group row" id="satuan-${satuanCount}">
-        <label class="col-lg-2 col-lg-offset-1 control-label"></label>
-        <div class="col-lg-2">
-            <select class="form-control satuan-select" name="produk_satuan[${satuanCount}][satuan]" required>
-                <option value="">Pilih Satuan</option>
-                <option value="pcs">PCS/option>
-                <option value="renteng">Renteng</option>
-                <option value="lusin">Lusin</option>
-                <option value="dus">Dus</option>
-                <option value="pak">Pak</option>
-                <option value="gross">Gross</option>
-                <option value="custom">Custom</option>
-            </select>
-            <span class="help-block with-errors"></span>
-        </div>
-        <div class="col-lg-4">
-            <input type="number" class="form-control" name="produk_satuan[${satuanCount}][harga_jual_eceran]" placeholder="Harga Jual Eceran" required>
-            <input type="number" class="form-control" name="produk_satuan[${satuanCount}][harga_jual_borongan]" placeholder="Harga Jual Borongan" required>
-            <span class="help-block with-errors"></span>
-        </div>
-        <div class="col-lg-2">
-            <button type="button" class="btn btn-danger btn-remove-satuan" data-id="${satuanCount}">Hapus</button>
-        </div>
+        const idx = satuanCount;
+        const $row = $(`
+    <div class="form-group row" id="satuan-${idx}">
+      <label class="col-lg-2 col-lg-offset-1 control-label"></label>
+      <div class="col-lg-2">
+        <select class="form-control satuan-select"
+                name="produk_satuan[${idx}][satuan]" required>
+          ${buildSatuanOptions()}
+        </select>
+        <span class="help-block with-errors"></span>
+      </div>
+      <div class="col-lg-4">
+        <input type="number" class="form-control"
+               name="produk_satuan[${idx}][harga_jual_eceran]"
+               placeholder="Harga Jual Eceran" required>
+        <input type="number" class="form-control"
+               name="produk_satuan[${idx}][harga_jual_borongan]"
+               placeholder="Harga Jual Borongan" required>
+        <span class="help-block with-errors"></span>
+      </div>
+      <div class="col-lg-2">
+        <button type="button" class="btn btn-danger btn-remove-satuan"
+                data-id="${idx}">Hapus</button>
+      </div>
     </div>
-    `;
-
-        $('#produk-satuan-container').append(satuanInput);
+  `);
+        $('#produk-satuan-container').append($row);
         satuanCount++;
     });
 
-    // Validasi saat memilih satuan agar tidak duplikat
+    // Jangan biarkan duplikat pilihan
     $(document).on('change', '.satuan-select', function() {
-        const selectedValue = $(this).val();
-        const selectedSatuan = getSelectedSatuan();
-
-        // Jika satuan sudah dipilih sebelumnya (kecuali "custom"), reset ke "Pilih Satuan" dan beri alert
-        if (selectedValue !== "custom" && selectedSatuan.filter(s => s === selectedValue).length > 1) {
-            alert("Satuan sudah dipilih! Pilih satuan lain.");
-            $(this).val(""); // Reset dropdown ke default
+        const val = $(this).val();
+        const dupCount = getSelectedSatuan().filter(s => s === val).length;
+        if (val !== 'custom' && dupCount > 1) {
+            alert('Satuan sudah dipilih, silakan pilih yang lain.');
+            $(this).val('');
+            return;
         }
-
-        // Jika "Custom" dipilih, ubah dropdown menjadi input teks
-        if (selectedValue === 'custom') {
-            const inputName = $(this).attr('name');
-            const customInput = `
-        <input type="text" class="form-control satuan-custom" name="${inputName}" placeholder="Satuan (Custom)" required>
-        <button type="button" class="btn btn-warning btn-restore-dropdown">↺</button>
-        `;
-            $(this).parent().html(customInput);
+        if (val === 'custom') {
+            const name = $(this).attr('name');
+            $(this).parent().html(`
+            <input type="text" id="satuan-custom" class="form-control satuan-custom"
+                    name="${name}" placeholder="Satuan (Custom)" required>
+            <button type="button" class="btn btn-warning btn-restore-dropdown">↺</button>
+    `);
         }
     });
 
@@ -187,23 +193,13 @@
         updateSatuanCount();
     });
 
-    // Event untuk mengembalikan dropdown jika input custom dihapus
     $(document).on('click', '.btn-restore-dropdown', function() {
-        const parentDiv = $(this).parent();
-        const inputName = parentDiv.find('.satuan-custom').attr('name');
-
-        const dropdown = `
-    <select class="form-control satuan-select" name="${inputName}" required>
-        <option value="">Pilih Satuan</option>
-        <option value="renteng">Renteng</option>
-        <option value="lusin">Lusin</option>
-        <option value="dus">Dus</option>
-        <option value="pak">Pak</option>
-        <option value="gross">Gross</option>
-        <option value="custom">Custom</option>
-    </select>
-    `;
-
-        parentDiv.html(dropdown);
+        const $p = $(this).parent();
+        const name = $p.find('.satuan-custom').attr('name');
+        $p.html(`
+        <select class="form-control satuan-select" name="${name}" required>
+        ${buildSatuanOptions()}
+        </select>
+    `);
     });
 </script>

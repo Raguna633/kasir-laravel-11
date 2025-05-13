@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Produk;
 use App\Models\Kategori;
 use App\Models\ProdukSatuan;
+use App\Models\SatuanProduk;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -14,63 +15,81 @@ class ProdukImport implements ToModel, WithHeadingRow, WithValidation
 {
     public function model(array $row)
     {
-        $kategori = Kategori::firstOrCreate(['nama_kategori' => $row['nama kategori']]);
+        $kategori = Kategori::firstOrCreate([
+            'nama_kategori' => $row['nama kategori']
+        ]);
 
         $produk = Produk::updateOrCreate(
             ['kode_produk' => $row['kode produk']],
             [
                 'nama_produk' => $row['nama produk'],
                 'id_kategori' => $kategori->id_kategori,
-                'merk' => $row['merk'],
-                'harga_beli' => $this->parseCurrency($row['harga beli']),
-                'stok' => $this->parseCurrency($row['stok']),
+                'merk'        => $row['merk'] ?? null,
+                'harga_beli'  => $this->parseCurrency($row['harga beli']),
+                'stok'        => $this->parseCurrency($row['stok']),
             ]
         );
 
+        // import satuan eceran & borongan
         $this->importProdukSatuan($produk->id_produk, $row['produk satuan eceran'], 'eceran');
         $this->importProdukSatuan($produk->id_produk, $row['produk satuan borongan'], 'borongan');
 
         return $produk;
     }
 
-    private function importProdukSatuan($idProduk, $data, $jenis)
+    private function importProdukSatuan(int $idProduk, ?string $data, string $jenis)
     {
-        if (empty($data) || trim($data) === '') return;
+        if (empty($data)) {
+            return;
+        }
 
-        $satuanArray = explode(',', $data);
+        // pisah entri berdasarkan koma
+        $entries = array_filter(array_map('trim', explode(',', $data)));
 
-        foreach ($satuanArray as $item) {
-            $item = trim($item);
-            if (empty($item)) continue;
+        foreach ($entries as $entry) {
+            // hanya proses jika ada ":" di string
+            if (! str_contains($entry, ':')) {
+                continue;
+            }
 
-            list($satuan, $harga) = explode(':', $item);
-            $satuan = trim($satuan);
-            $harga = trim($harga);
+            [$satuanNama, $hargaStr] = array_map('trim', explode(':', $entry, 2));
 
-            $field = ($jenis == 'eceran') ? 'harga_jual_eceran' : 'harga_jual_borongan';
+            // skip jika nama atau harga kosong
+            if ($satuanNama === '' || $hargaStr === '') {
+                continue;
+            }
 
+            // cari atau buat master satuan
+            $master = SatuanProduk::firstOrCreate(['nama' => $satuanNama]);
+
+            // jika gagal membuat/ambil id, skip
+            if (! $master->id) {
+                continue;
+            }
+
+            // tentukan kolom harga
+            $field = $jenis === 'eceran'
+                ? 'harga_jual_eceran'
+                : 'harga_jual_borongan';
+
+            // simpan atau update ke produk_satuan
             ProdukSatuan::updateOrCreate(
                 [
                     'id_produk' => $idProduk,
-                    'satuan' => $satuan
+                    'id_satuan' => $master->id,
                 ],
                 [
-                    $field => $this->parseCurrency($harga)
+                    $field => $this->parseCurrency($hargaStr),
                 ]
             );
         }
     }
 
-    private function parseCurrency($value): int
+    private function parseCurrency(string $value): int
     {
-        // Hilangkan semua karakter non-numerik termasuk titik dan spasi
-        $value = str_replace(['.', 'Rp', ' '], '', trim($value));
-
-        // Jika nilai kosong, kembalikan 0
-        if ($value === '') {
-            return 0;
-        }
-        return (int) $value;
+        // hilangkan semua non цифра
+        $clean = preg_replace('/[^\d]/', '', $value);
+        return $clean === '' ? 0 : (int) $clean;
     }
 
     public function rules(): array
@@ -81,18 +100,8 @@ class ProdukImport implements ToModel, WithHeadingRow, WithValidation
                 Rule::unique('produk', 'kode_produk')
             ],
             'nama produk' => 'required|max:255',
-            'harga beli' => 'required|numeric',
-            'stok' => 'required|integer|min:0',
-            'produk satuan eceran' => 'nullable',
-            'produk satuan borongan' => 'nullable'
+            'harga beli'  => 'required|numeric',
+            'stok'        => 'required|numeric|min:0',
         ];
-    }
-
-    public function prepareForValidation($data)
-    {
-        $data['harga beli'] = $this->parseCurrency($data['harga beli']);
-        $data['stok'] = $this->parseCurrency($data['stok']);
-
-        return $data;
     }
 }

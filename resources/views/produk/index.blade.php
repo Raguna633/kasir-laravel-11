@@ -27,13 +27,17 @@
                             data-target="#modal-import">
                             <i class="fa fa-download"></i> Impor Data Produk
                         </button>
+                        <button type="button" class="btn btn-primary btn-xs btn-flat" data-toggle="modal"
+                            data-target="#modal-satuan-produk" id="btn-manage-satuan">
+                            <i class="fa fa-circle"></i> Kelola Daftar Satuan
+                        </button>
                     </div>
                 </div>
                 <div id="import-message"></div>
                 <div class="box-body table-responsive">
                     <form action="" method="post" class="form-produk">
                         @csrf
-                        <table class="table table-stiped table-bordered">
+                        <table class="table table-stiped table-bordered" id="table-produk">
                             <thead>
                                 <th width="5%">
                                     <input type="checkbox" name="select_all" id="select_all">
@@ -59,39 +63,31 @@
 
     @includeIf('produk.form')
     @includeIf('produk.import')
+    @includeIf('produk.satuan_form')
 @endsection
 
 @push('scripts')
     <script>
+        window.availableSatuan = @json($allSatuan);
         let table;
 
-        // $.ajax({
-        //     url: '{{ route('produk.data') }}',
-        //     success: function(response) {
-        //         console.log(response); // Periksa apakah data valid
-        //     },
-        //     error: function(xhr) {
-        //         console.error('Error:', xhr.responseText);
-        //     }
-        // });
-
-
         $(function() {
-            table = $('.table').DataTable({
+            table = $('#table-produk').DataTable({
                 processing: true,
+                serverSide: false,
                 autoWidth: false,
                 ajax: {
                     url: '{{ route('produk.data') }}',
                 },
                 columns: [{
                         data: 'select_all',
-                        searchable: false,
-                        sortable: false
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'DT_RowIndex',
-                        searchable: false,
-                        sortable: false
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'kode_produk'
@@ -99,8 +95,10 @@
                     {
                         data: 'nama_produk'
                     },
+                    // kolom kategori
                     {
-                        data: 'nama_kategori'
+                        data: 'nama_kategori',
+                        title: 'Kategori'
                     },
                     {
                         data: 'merk'
@@ -108,11 +106,14 @@
                     {
                         data: 'harga_beli'
                     },
+                    // kolom satuan eceran & borongan sekarang berisi HTML dengan <br>
                     {
-                        data: 'produk_satuan_eceran'
+                        data: 'produk_satuan_eceran',
+                        title: 'Satuan Eceran'
                     },
                     {
-                        data: 'produk_satuan_borongan'
+                        data: 'produk_satuan_borongan',
+                        title: 'Satuan Borongan'
                     },
                     {
                         data: 'diskon'
@@ -122,10 +123,17 @@
                     },
                     {
                         data: 'aksi',
-                        searchable: false,
-                        sortable: false
+                        orderable: false,
+                        searchable: false
                     },
-                ]
+                ],
+                columnDefs: [{
+                    // pastikan cell satuan dibiarkan render HTML
+                    targets: [7, 8],
+                    render: function(data, type, row) {
+                        return data;
+                    }
+                }]
             });
 
             $('#modal-form').validator().on('submit', function(e) {
@@ -153,14 +161,19 @@
             $('#kode-produk-error, #kode-produk-valid').remove();
             $('#nama-produk-error, #nama-produk-valid').remove();
             const kodeOri = $('#original_kode_produk');
+            const namaOri = $('#original_nama_produk');
             kodeOri.val('');
+            namaOri.val('');
+            refreshSatuanList();
             const satuanContainer = $('#produk-satuan-container');
             satuanContainer.empty();
             satuanContainer.append(`
             <div class="form-group row" id="satuan-0">
                             <label class="col-lg-2 col-lg-offset-1 control-label">Satuan</label>
                             <div class="col-lg-2">
-                                <input type="text" class="form-control" name="produk_satuan[0][satuan]" value="pcs">
+                                <select class="form-control satuan-select" name="produk_satuan[0][satuan]" required>
+                                    ${buildSatuanOptions()}
+                                </select>
                             </div>
                             <div class="col-lg-4">
                                 <input type="number" class="form-control" name="produk_satuan[0][harga_jual_eceran]" placeholder="Harga Jual Eceran" required>
@@ -189,100 +202,104 @@
             fieldKodeProduk.removeClass('is-invalid is-valid');
             $('#kode-produk-error, #kode-produk-valid').remove();
             $('#nama-produk-error, #nama-produk-valid').remove();
-            const satuanContainer = $('#produk-satuan-container');
-            satuanContainer.empty();
-            satuanContainer.append(`
-        <h5 class="text-center"><strong>Edit Harga Satuan</strong></h5>
-        <span class="help-block with-errors"></span>
-    `);
+            const $satuanContainer = $('#produk-satuan-container').empty()
+            .append(`<h5 class="text-center"><strong>Edit Harga Satuan</strong></h5>
+            <span class="help-block with-errors"></span>`);
+            
+            refreshSatuanList();
+            $('#modal-form').modal('show')
+                .find('.modal-title').text('Edit Produk');
 
-            $('#modal-form').modal('show');
-            $('#modal-form .modal-title').text('Edit Produk');
+            $('#modal-form form')
+                .attr('action', url)
+                .trigger('reset')
+                .find('[name=_method]').val('put');
 
-            $('#modal-form form')[0].reset();
-            $('#modal-form form').attr('action', url);
-            $('#modal-form [name=_method]').val('put');
-            $('#modal-form [name=nama_produk]').focus();
 
             $.get(url)
-                .done((response) => {
-                    console.log('Respons dari server:', response);
-
-                    // Isi data produk
-                    $('#modal-form [name=kode_produk]').val(response.kode_produk);
-                    // Set kode produk asli
+                .done(response => {
+                    $('[name=kode_produk]').val(response.kode_produk);
                     $('#original_kode_produk').val(response.kode_produk);
-                    $('#modal-form [name=nama_produk]').val(response.nama_produk);
-                    $('#modal-form [name=id_kategori]').val(response.id_kategori);
-                    $('#modal-form [name=merk]').val(response.merk);
-                    $('#modal-form [name=harga_beli]').val(response.harga_beli);
-                    $('#modal-form [name=diskon]').val(response.diskon);
-                    $('#modal-form [name=stok]').val(response.stok);
+                    $('[name=nama_produk]').val(response.nama_produk);
+                    $('[name=id_kategori]').val(response.id_kategori);
+                    $('[name=merk]').val(response.merk);
+                    $('[name=harga_beli]').val(response.harga_beli);
+                    $('[name=diskon]').val(response.diskon);
+                    $('[name=stok]').val(response.stok);
+                    const listSatuan = response.produk_satuan; // array hasil transformasi di controller
+                    let satuanDefault = window.availableSatuan; // kalau masih pakai dynamic list
 
-                    // Daftar satuan bawaan
-                    const satuanBawaan = ["renteng", "lusin", "dus", "pak", "gross", "ball"];
+                    $('#produk-satuan-container').empty();
+                    listSatuan.forEach((ps, idx) => {
+                        const namaSatuan = ps.satuan; // <— sekarang pasti ada
+                        const isDefault = namaSatuan === 'pcs';
+                        const isCustom = !satuanDefault.includes(namaSatuan);
 
-                    // Iterasi data satuan
-                    if (Array.isArray(response.produk_satuan) && response.produk_satuan.length > 0) {
-                        response.produk_satuan.forEach((satuan, index) => {
-                            const isDefault = satuan.satuan === 'pcs'; // Satuan default
-                            const isCustom = !satuanBawaan.includes(satuan
-                                .satuan); // Cek apakah satuan adalah custom
-
-                            let satuanField;
-                            if (isDefault) {
-                                satuanField =
-                                    `<input type="text" class="form-control" name="produk_satuan[${index}][satuan]" value="pcs">`;
-                            } else if (isCustom) {
-                                satuanField = `
-                            <input type="text" class="form-control custom-satuan" name="produk_satuan[${index}][satuan]" value="${satuan.satuan}" required>
-                        `;
-                            } else {
-                                satuanField = `
-                            <select class="form-control satuan-select" name="produk_satuan[${index}][satuan]" required>
+                        // Bangun field select/input
+                        let satuanField;
+                        if (isCustom) {
+                            satuanField = `
+                            <input type="text" class="form-control custom-satuan"
+                                    name="produk_satuan[${idx}][satuan]"
+                                    value="${namaSatuan}" required>`;
+                        } else {
+                            satuanField = `
+                            <select class="form-control satuan-select"
+                                    name="produk_satuan[${idx}][satuan]" required>
                                 <option value="">Pilih Satuan</option>
-                                <option value="pcs" ${satuan.satuan === 'pcs' ? 'selected' : ''}>PCS</option>
-                                <option value="renteng" ${satuan.satuan === 'renteng' ? 'selected' : ''}>Renteng</option>
-                                <option value="lusin" ${satuan.satuan === 'lusin' ? 'selected' : ''}>Lusin</option>
-                                <option value="dus" ${satuan.satuan === 'dus' ? 'selected' : ''}>Dus</option>
-                                <option value="pak" ${satuan.satuan === 'pak' ? 'selected' : ''}>Pak</option>
-                                <option value="gross" ${satuan.satuan === 'gross' ? 'selected' : ''}>Gross</option>
+                                ${satuanDefault.map(s => `
+                                                        <option value="${s}"
+                                                            ${s === namaSatuan ? 'selected' : ''}>${s}</option>
+                                                        `).join('')}
                                 <option value="custom">Custom</option>
-                            </select>
-                        `;
-                            }
+                            </select>`;
+                        }
 
-                            satuanContainer.append(`
-                        <div class="form-group row" id="satuan-${index}">
-                            <label class="col-lg-2 col-lg-offset-1 control-label"></label>
-                            <div class="col-lg-2">
-                                ${satuanField}
-                            </div>
-                            <div class="col-lg-4">
-                                <input type="number" class="form-control" name="produk_satuan[${index}][harga_jual_eceran]" value="${satuan.harga_jual_eceran}" placeholder="Harga Jual Eceran" required>
-                                <input type="number" class="form-control" name="produk_satuan[${index}][harga_jual_borongan]" value="${satuan.harga_jual_borongan}" placeholder="Harga Jual Borongan" required>
-                            </div>
-                            ${!isDefault ? `
-                                                                                                                            <div class="col-lg-2">
-                                                                                                                                <button type="button" class="btn btn-danger btn-remove-satuan" data-id="${index}">Hapus</button>
-                                                                                                                            </div>` : ''}
-                        </div>
-                    `);
-
-                            // Jika satuan adalah custom, ubah dropdown menjadi input teks
-                            if (isCustom) {
-                                $(`#satuan-${index} .satuan-select`).replaceWith(`
-                            <input type="text" class="form-control custom-satuan" name="produk_satuan[${index}][satuan]" value="${satuan.satuan}" required>
+                        // Append ke container
+                        $('#produk-satuan-container').append(`
+                                                <div class="form-group row" id="satuan-${idx}">
+                                                <label class="col-lg-2 col-lg-offset-1 control-label"></label>
+                                                <div class="col-lg-2">${satuanField}</div>
+                                                <div class="col-lg-4">
+                                                    <input type="number" class="form-control"
+                                                        name="produk_satuan[${idx}][harga_jual_eceran]"
+                                                        value="${ps.harga_jual_eceran}" placeholder="Harga Jual Eceran" required>
+                                                    <input type="number" class="form-control"
+                                                        name="produk_satuan[${idx}][harga_jual_borongan]"
+                                                        value="${ps.harga_jual_borongan}" placeholder="Harga Jual Borongan" required>
+                                                </div>
+                                                ${!isDefault ? `
+                                                        <div class="col-lg-2">
+                                                        <button type="button" class="btn btn-danger btn-remove-satuan" data-id="${idx}">
+                                                            Hapus
+                                                        </button>
+                                                        </div>` : ''}
+                                                </div>
                         `);
-                            }
-                        });
-                    }
+                    });
+
+                    $('#modal-form').modal('show');
                 })
-                .fail((errors) => {
-                    alert('Tidak dapat menampilkan data');
-                    return;
-                });
+                .fail(() => alert('Tidak dapat menampilkan data'));
         }
+
+        // restore dropdown ketika memilih "custom"
+        $(document).on('change', '.satuan-select', function() {
+            if (this.value === 'custom') {
+                const name = this.name;
+                $(this).replaceWith(`
+            <input type="text" class="form-control custom-satuan"
+                   name="${name}" placeholder="Satuan (Custom)" required>
+        `);
+            }
+        });
+
+        // hapus satuan
+        $(document).on('click', '.btn-remove-satuan', function() {
+            const id = $(this).data('id');
+            $(`#satuan-${id}`).remove();
+        });
+
 
         // Event untuk menangani input manual jika opsi "Custom" dipilih
         $(document).on('change', 'select[name^="produk_satuan"]', function() {
@@ -386,7 +403,7 @@
                     },
                     success: function(response) {
                         $('#nama-produk-error, #nama-produk-valid')
-                        .remove();
+                            .remove();
 
                         if (response.exists) {
                             var errorMessage =
@@ -407,7 +424,7 @@
                     },
                     error: function(xhr) {
                         console.error('Terjadi kesalahan saat memeriksa nama produk:', xhr
-                        .responseText);
+                            .responseText);
                         inputField.removeClass('is-invalid is-valid');
                         $('#nama-produk-error, #nama-produk-valid').remove();
                     }
@@ -502,6 +519,113 @@
                         alert(errorMessage);
                     }
                 });
+            });
+        });
+
+        function fetchSemuaSatuan() {
+                return $.getJSON('/api/satuan-produk');
+            }
+
+        // Fungsi fetch ulang dan render ulang semua dropdown satuan
+        function refreshSatuanList() {
+            // $('#btn-refresh-satuan').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Memuat...');
+            fetchSemuaSatuan().then(list => {
+                window.availableSatuan = list;
+                renderAllSatuanSelects();
+                // $('#btn-refresh-satuan').prop('disabled', false).html(
+                //     '<i class="fa fa-refresh"></i> Refresh Daftar Satuan');
+            }).catch(() => {
+                alert('Gagal memuat daftar satuan');
+                // $('#btn-refresh-satuan').prop('disabled', false).html(
+                //     '<i class="fa fa-refresh"></i> Refresh Daftar Satuan');
+            });
+        }
+
+        // script untuk form satuan
+        $(function() {
+            // buka modal master
+            $('#btn-manage-satuan').on('click', () => loadSatuan());
+
+            function loadSatuan() {
+                $.getJSON("satuan-produk", data => {
+                    const $tbody = $('#table-satuan-produk tbody').empty();
+                    data.forEach((item, i) => {
+                        $tbody.append(`
+                <tr>
+                    <td>${i+1}</td>
+                    <td>${item.nama}</td>
+                    <td>
+                    <button class="btn btn-sm btn-info btn-edit-satuan" data-id="${item.id}" data-nama="${item.nama}">Edit</button>
+                    <button class="btn btn-sm btn-danger btn-delete-satuan" data-id="${item.id}">Hapus</button>
+                    </td>
+                </tr>
+                `);
+                    });
+                    $('#modal-satuan-produk').modal('show');
+                });
+            }
+
+            // Tambah
+            $('#btn-add-new-satuan').on('click', () => {
+                $('#form-satuan-produk')[0].reset();
+                $('#satuan-id').val('');
+                $('#modal-form-satuan-label').text('Tambah Satuan Baru');
+                $('#modal-form-satuan').modal('show');
+            });
+
+            // Edit
+            $(document).on('click', '.btn-edit-satuan', function() {
+                $('#satuan-id').val(this.dataset.id);
+                $('#satuan-nama').val(this.dataset.nama);
+                $('#modal-form-satuan-label').text('Edit Satuan');
+                $('#modal-form-satuan').modal('show');
+            });
+
+            // Delete
+            $(document).on('click', '.btn-delete-satuan', function() {
+                if (!confirm('Yakin hapus satuan ini?')) return;
+                $.ajax({
+                        url: `/api/satuan-produk/${this.dataset.id}`,
+                        method: 'DELETE'
+                    })
+                    .done((response) => {
+                        loadSatuan();
+                        renderAllSatuanSelects();
+                        table.ajax.reload();
+                    })
+                    .fail(() => alert('Gagal menghapus'));
+            });
+
+            
+
+            // Submit form
+            $('#form-satuan-produk').on('submit', function(e) {
+                e.preventDefault();
+                const id = $('#satuan-id').val();
+                const nama = $('#satuan-nama').val().trim();
+                if (!nama) return $('#satuan-nama').addClass('is-invalid');
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `/api/satuan-produk/${id}` : '/api/satuan-produk';
+                $.ajax({
+                        url,
+                        method,
+                        data: {
+                            nama
+                        },
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    })
+                    .done(({
+                        data
+                    }) => {
+                        $('#modal-form-satuan').modal('hide');
+                        loadSatuan();
+                        window.availableSatuan.push(data.nama);
+                        renderAllSatuanSelects();
+                        table.ajax.reload();
+                    })
+                    .fail(() => alert('Gagal menyimpan'));
             });
         });
     </script>

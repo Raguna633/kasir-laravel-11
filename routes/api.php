@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\API\SatuanProdukController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,3 +21,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::get('/produk/check-kode', [ProdukController::class, 'checkKode'])->name('produk.checkKode');
 Route::get('/produk/check-nama', [ProdukController::class, 'checkNama'])->name('produk.checkNama');
+
+Route::get    ('/satuan-produk',          [SatuanProdukController::class, 'index']);
+    Route::post   ('/satuan-produk',          [SatuanProdukController::class, 'store']);
+    Route::put    ('/satuan-produk/{id}',     [SatuanProdukController::class, 'update']);
+    Route::delete ('/satuan-produk/{id}',     [SatuanProdukController::class, 'destroy']);

@@ -17,195 +17,307 @@ class ProdukController extends Controller
     public function index()
     {
         $kategori = Kategori::all()->pluck('nama_kategori', 'id_kategori');
+        $allSatuan   = SatuanProduk::orderBy('nama')->pluck('nama');
 
-        return view('produk.index', compact('kategori'));
+        return view('produk.index', compact('kategori', 'allSatuan'));
     }
 
     public function data()
     {
-        $produk = Produk::with('produkSatuan')
-            ->leftJoin('kategori', 'kategori.id_kategori', 'produk.id_kategori')
-            ->select('produk.*', 'nama_kategori')
+        // Eager‐load relasi satuan.masterSatuan
+        $all = Produk::with(['satuan.masterSatuan', 'kategori'])
             ->orderBy('kode_produk', 'asc')
             ->get();
 
-        $produk = $produk->map(function ($item) {
-            $item->produk_satuan = $item->produkSatuan->map(function ($satuan) {
-                return [
-                    'satuan' => $satuan->satuan,
-                    'harga_jual_eceran' => $satuan->harga_jual_eceran,
-                    'harga_jual_borongan' => $satuan->harga_jual_borongan,
-                ];
-            })->toArray();
-
-            return $item;
-        });
-
         return datatables()
-            ->of($produk)
+            ->of($all)
             ->addIndexColumn()
-            ->addColumn('select_all', function ($produk) {
+            ->addColumn('select_all', function ($prod) {
+                return '<input type="checkbox" name="id_produk[]" value="' . $prod->id_produk . '">';
+            })
+            ->addColumn('kode_produk', function ($prod) {
+                return '<span class="label label-success">' . $prod->kode_produk . '</span>';
+            })
+            ->addColumn('nama_kategori', function ($prod) {
+                return $prod->kategori->nama_kategori ?? '-';
+            })
+            ->addColumn('harga_beli', function ($prod) {
+                return format_uang($prod->harga_beli);
+            })
+            ->addColumn('produk_satuan_eceran', function ($prod) {
+                return $prod->satuan
+                    ->map(
+                        fn($ps) =>
+                        "{$ps->nama}: " . format_uang($ps->pivot->harga_jual_eceran)
+                    )
+                    ->join('<br>');   // kalau kosong, join akan mengembalikan ''
+            })
+            ->addColumn('produk_satuan_borongan', function ($prod) {
+                return $prod->satuan
+                    ->map(
+                        fn($ps) =>
+                        "{$ps->nama}: " . format_uang($ps->pivot->harga_jual_borongan)
+                    )
+                    ->join('<br>');
+            })
+            ->addColumn('stok', function ($prod) {
+                return format_uang($prod->stok);
+            })
+            ->addColumn('aksi', function ($prod) {
                 return '
-                    <input type="checkbox" name="id_produk[]" value="' . $produk->id_produk . '">
-                ';
+            <div class="btn-group">
+                <button type="button" onclick="editForm(`' . route('produk.update', $prod->id_produk) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
+                <button type="button" onclick="deleteData(`' . route('produk.destroy', $prod->id_produk) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
+            </div>
+            ';
             })
-            ->addColumn('kode_produk', function ($produk) {
-                return '<span class="label label-success">' . $produk->kode_produk . '</span>';
-            })
-            ->addColumn('harga_beli', function ($produk) {
-                return format_uang($produk->harga_beli);
-            })
-            ->addColumn('produk_satuan_eceran', function ($produk) {
-                return collect($produk->produk_satuan)->map(function ($satuan) {
-                    return $satuan['satuan'] . ': ' . format_uang($satuan['harga_jual_eceran']);
-                })->join(', ');
-            })
-            ->addColumn('produk_satuan_borongan', function ($produk) {
-                return collect($produk->produk_satuan)->map(function ($satuan) {
-                    return $satuan['satuan'] . ': ' . format_uang($satuan['harga_jual_borongan']);
-                })->join(', ');
-            })
-            ->addColumn('stok', function ($produk) {
-                return format_uang($produk->stok);
-            })
-            ->addColumn('aksi', function ($produk) {
-                return '
-                <div class="btn-group">
-                    <button type="button" onclick="editForm(`' . route('produk.update', $produk->id_produk) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-pencil"></i></button>
-                    <button type="button" onclick="deleteData(`' . route('produk.destroy', $produk->id_produk) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                </div>
-                ';
-            })
-            ->rawColumns(['aksi', 'kode_produk', 'select_all'])
+            ->rawColumns([
+                'select_all',
+                'kode_produk',
+                'produk_satuan_eceran',
+                'produk_satuan_borongan',
+                'aksi'
+            ])
             ->make(true);
+    }
+
+
+    // public function store(Request $request)
+    // {
+
+    //     $produk = Produk::latest()->first() ?? new Produk();
+    //     if ($request['kode_produk'] == null) {
+    //         $request['kode_produk'] = tambah_nol_didepan((int)$produk->id_produk + 1, 6);
+    //     };
+
+    //     $request->validate([
+    //         'kode_produk' => 'required|unique:produk,kode_produk',
+    //         'nama_produk' => 'required|string|max:255',
+    //         'harga_beli' => 'required|numeric|min:0',
+    //         'produk_satuan' => 'required|array',
+    //         'produk_satuan.*.satuan' => 'required|string|max:50',
+    //         'produk_satuan.*.harga_jual_eceran' => 'required|numeric|min:0',
+    //         'produk_satuan.*.harga_jual_borongan' => 'nullable|numeric|min:0',
+    //     ]);
+
+    //     $data = $request->all();
+
+    //     if (isset($data['produk_satuan'])) {
+    //         foreach ($data['produk_satuan'] as $satuan) {
+    //             if (!SatuanProduk::where('nama', $satuan['satuan'])->exists()) {
+    //                 SatuanProduk::create(['nama' => $satuan['satuan']]);
+    //             }
+    //         }
+    //     }
+
+    //     // Simpan data produk
+    //     $produk = Produk::create([
+    //         'kode_produk' => $request->kode_produk,
+    //         'nama_produk' => $request->nama_produk,
+    //         'id_kategori' => $request->id_kategori,
+    //         'merk' => $request->merk,
+    //         'harga_beli' => $request->harga_beli,
+    //         'diskon' => $request->diskon,
+    //         'stok' => $request->stok,
+    //     ]);
+
+    //     // Simpan data produk_satuan
+    //     foreach ($request->produk_satuan as $satuan) {
+    //         ProdukSatuan::create([
+    //             'id_produk' => $produk->id_produk,
+    //             'satuan' => $satuan['satuan'],
+    //             'harga_jual_eceran' => $satuan['harga_jual_eceran'],
+    //             'harga_jual_borongan' => $satuan['harga_jual_borongan'],
+    //         ]);
+    //     }
+
+    //     return response()->json('Data berhasil disimpan', 200);
+    // }
+
+    public function show($id)
+    {
+        $produk = Produk::with('satuan')->find($id);
+
+        $satuanArr = $produk->satuan->map(function ($s) {
+            return [
+                'pivot_id'            => $s->pivot->id,           // id di tabel produk_satuan
+                'satuan'              => $s->nama,                // nama satuan dari tabel satuan_produk
+                'harga_jual_eceran'   => $s->pivot->harga_jual_eceran,
+                'harga_jual_borongan' => $s->pivot->harga_jual_borongan,
+            ];
+        })->toArray();
+
+        return response()->json([
+            'id_produk'    => $produk->id_produk,
+            'kode_produk'  => $produk->kode_produk,
+            'nama_produk'  => $produk->nama_produk,
+            'id_kategori'  => $produk->id_kategori,
+            'merk'         => $produk->merk,
+            'harga_beli'   => $produk->harga_beli,
+            'diskon'       => $produk->diskon,
+            'stok'         => $produk->stok,
+            'produk_satuan' => $satuanArr,
+        ]);
     }
 
     public function store(Request $request)
     {
+        // 1) Generate kode jika kosong
+        $last = Produk::latest('id_produk')->first();
+        if (! $request->filled('kode_produk')) {
+            $request->merge([
+                'kode_produk' => tambah_nol_didepan(($last->id_produk ?? 0) + 1, 6)
+            ]);
+        }
 
-        $produk = Produk::latest()->first() ?? new Produk();
-        if ($request['kode_produk'] == null) {
-            $request['kode_produk'] = tambah_nol_didepan((int)$produk->id_produk + 1, 6);
-        };
-
+        // 2) Validasi
         $request->validate([
-            'kode_produk' => 'required|unique:produk,kode_produk',
-            'nama_produk' => 'required|string|max:255',
-            'harga_beli' => 'required|numeric|min:0',
-            'produk_satuan' => 'required|array',
-            'produk_satuan.*.satuan' => 'required|string|max:50',
-            'produk_satuan.*.harga_jual_eceran' => 'required|numeric|min:0',
+            'kode_produk'                => 'required|unique:produk,kode_produk',
+            'nama_produk'                => 'required|string|max:255',
+            'harga_beli'                 => 'required|numeric|min:0',
+            'id_kategori'                => 'required|exists:kategori,id_kategori',
+            'produk_satuan'              => 'required|array|min:1',
+            'produk_satuan.*.satuan'     => 'required|string|max:50',
+            'produk_satuan.*.harga_jual_eceran'  => 'required|numeric|min:0',
             'produk_satuan.*.harga_jual_borongan' => 'nullable|numeric|min:0',
         ]);
 
-        $data = $request->all();
+        // 3) Buat Produk
+        $produk = Produk::create($request->only([
+            'kode_produk',
+            'nama_produk',
+            'id_kategori',
+            'merk',
+            'harga_beli',
+            'diskon',
+            'stok'
+        ]));
 
-        if (isset($data['produk_satuan'])) {
-            foreach ($data['produk_satuan'] as $satuan) {
-                if (!SatuanProduk::where('nama', $satuan['satuan'])->exists()) {
-                    SatuanProduk::create(['nama' => $satuan['satuan']]);
-                }
-            }
+        // 4) Persiapkan relasi pivot
+        $attachData = [];
+        foreach ($request->input('produk_satuan') as $row) {
+            // a) Temukan atau buat master satuan
+            $ms = SatuanProduk::firstOrCreate(['nama' => $row['satuan']]);
+            // b) Siapkan array untuk attach()
+            $attachData[$ms->id] = [
+                'harga_jual_eceran'  => $row['harga_jual_eceran'],
+                'harga_jual_borongan' => $row['harga_jual_borongan'] ?? 0,
+            ];
         }
 
-        // Simpan data produk
-        $produk = Produk::create([
-            'kode_produk' => $request->kode_produk,
-            'nama_produk' => $request->nama_produk,
-            'id_kategori' => $request->id_kategori,
-            'merk' => $request->merk,
-            'harga_beli' => $request->harga_beli,
-            'diskon' => $request->diskon,
-            'stok' => $request->stok,
-        ]);
-
-        // Simpan data produk_satuan
-        foreach ($request->produk_satuan as $satuan) {
-            ProdukSatuan::create([
-                'id_produk' => $produk->id_produk,
-                'satuan' => $satuan['satuan'],
-                'harga_jual_eceran' => $satuan['harga_jual_eceran'],
-                'harga_jual_borongan' => $satuan['harga_jual_borongan'],
-            ]);
-        }
+        // 5) Attach pivot sekaligus
+        $produk->satuan()->attach($attachData);
 
         return response()->json('Data berhasil disimpan', 200);
     }
 
-    public function show($id)
-    {
-        $produk = Produk::with('produkSatuan')->find($id);
-
-        if (!$produk) {
-            return response()->json(['error' => 'Produk tidak ditemukan'], 404);
-        }
-
-        // Kembalikan data dengan relasi dalam format JSON
-        return response()->json($produk);
-    }
-
     public function update(Request $request, $id)
     {
-        // Validasi input
+        // 1) Validasi
         $request->validate([
-            'kode_produk' => "required|unique:produk,kode_produk,{$id},id_produk",
-            'nama_produk' => 'required|string|max:255',
-            'harga_beli' => 'required|numeric|min:0',
-            'produk_satuan' => 'required|array',
-            'produk_satuan.*.satuan' => 'required|string|max:50',
-            'produk_satuan.*.harga_jual_eceran' => 'required|numeric|min:0',
-            'produk_satuan.*.harga_jual_borongan' => 'required|numeric|min:0',
+            'kode_produk'                => "required|unique:produk,kode_produk,{$id},id_produk",
+            'nama_produk'                => 'required|string|max:255',
+            'harga_beli'                 => 'required|numeric|min:0',
+            'id_kategori'                => 'required|exists:kategori,id_kategori',
+            'produk_satuan'              => 'required|array|min:1',
+            'produk_satuan.*.satuan'     => 'required|string|max:50',
+            'produk_satuan.*.harga_jual_eceran'  => 'required|numeric|min:0',
+            'produk_satuan.*.harga_jual_borongan' => 'nullable|numeric|min:0',
         ]);
-        $produk = Produk::with('produkSatuan')->find($id);
 
-        $produk->update($request->except('produk_satuan'));
+        // 2) Cari produk
+        $produk = Produk::findOrFail($id);
 
-        // Update data produk_satuan
-        $dataBaru = $request->produk_satuan;
+        // 3) Update data utama
+        $produk->update($request->only([
+            'kode_produk',
+            'nama_produk',
+            'id_kategori',
+            'merk',
+            'harga_beli',
+            'diskon',
+            'stok'
+        ]));
 
-        // Ambil data lama
-        $dataLama = $produk->produkSatuan->keyBy('satuan')->toArray();
-
-        $data = $request->all();
-
-        if (isset($data['produk_satuan'])) {
-            foreach ($data['produk_satuan'] as $satuan) {
-                if (!SatuanProduk::where('nama', $satuan['satuan'])->exists()) {
-                    SatuanProduk::create(['nama' => $satuan['satuan']]);
-                }
-            }
+        // 4) Persiapkan data sync pivot
+        $syncData = [];
+        foreach ($request->input('produk_satuan') as $row) {
+            $ms = SatuanProduk::firstOrCreate(['nama' => $row['satuan']]);
+            $syncData[$ms->id] = [
+                'harga_jual_eceran'  => $row['harga_jual_eceran'],
+                'harga_jual_borongan' => $row['harga_jual_borongan'] ?? 0,
+            ];
         }
 
-        // Loop data baru untuk memperbarui atau menambah
-        foreach ($dataBaru as $satuanBaru) {
-            if (isset($dataLama[$satuanBaru['satuan']])) {
-                // Jika sudah ada, update
-                ProdukSatuan::where('id_produk', $produk->id_produk)
-                    ->where('satuan', $satuanBaru['satuan'])
-                    ->update(['harga_jual_eceran' => $satuanBaru['harga_jual_eceran'], 'harga_jual_borongan' => $satuanBaru['harga_jual_borongan']]);
-
-                // Hapus dari data lama (sudah diupdate)
-                unset($dataLama[$satuanBaru['satuan']]);
-            } else {
-                // Jika belum ada, tambahkan
-                ProdukSatuan::create([
-                    'id_produk' => $produk->id_produk,
-                    'satuan' => $satuanBaru['satuan'],
-                    'harga_jual_eceran' => $satuanBaru['harga_jual_eceran'],
-                    'harga_jual_borongan' => $satuanBaru['harga_jual_borongan'],
-                ]);
-            }
-        }
-
-        // Hapus data lama yang tidak ada di data baru
-        if (count($dataLama) > 0) {
-            ProdukSatuan::where('id_produk', $produk->id_produk)
-                ->whereIn('satuan', array_keys($dataLama))
-                ->delete();
-        }
+        // 5) Sync pivot: otomatis menambah, update, dan hapus yang tidak ada
+        $produk->satuan()->sync($syncData);
 
         return response()->json('Data berhasil diperbarui', 200);
     }
+
+
+    // public function update(Request $request, $id)
+    // {
+    //     // Validasi input
+    //     $request->validate([
+    //         'kode_produk' => "required|unique:produk,kode_produk,{$id},id_produk",
+    //         'nama_produk' => 'required|string|max:255',
+    //         'harga_beli' => 'required|numeric|min:0',
+    //         'produk_satuan' => 'required|array',
+    //         'produk_satuan.*.satuan' => 'required|string|max:50',
+    //         'produk_satuan.*.harga_jual_eceran' => 'required|numeric|min:0',
+    //         'produk_satuan.*.harga_jual_borongan' => 'required|numeric|min:0',
+    //     ]);
+    //     $produk = Produk::with('produkSatuan')->find($id);
+
+    //     $produk->update($request->except('produk_satuan'));
+
+    //     // Update data produk_satuan
+    //     $dataBaru = $request->produk_satuan;
+
+    //     // Ambil data lama
+    //     $dataLama = $produk->produkSatuan->keyBy('satuan')->toArray();
+
+    //     $data = $request->all();
+
+    //     if (isset($data['produk_satuan'])) {
+    //         foreach ($data['produk_satuan'] as $satuan) {
+    //             if (!SatuanProduk::where('nama', $satuan['satuan'])->exists()) {
+    //                 SatuanProduk::create(['nama' => $satuan['satuan']]);
+    //             }
+    //         }
+    //     }
+
+    //     // Loop data baru untuk memperbarui atau menambah
+    //     foreach ($dataBaru as $satuanBaru) {
+    //         if (isset($dataLama[$satuanBaru['satuan']])) {
+    //             // Jika sudah ada, update
+    //             ProdukSatuan::where('id_produk', $produk->id_produk)
+    //                 ->where('satuan', $satuanBaru['satuan'])
+    //                 ->update(['harga_jual_eceran' => $satuanBaru['harga_jual_eceran'], 'harga_jual_borongan' => $satuanBaru['harga_jual_borongan']]);
+
+    //             // Hapus dari data lama (sudah diupdate)
+    //             unset($dataLama[$satuanBaru['satuan']]);
+    //         } else {
+    //             // Jika belum ada, tambahkan
+    //             ProdukSatuan::create([
+    //                 'id_produk' => $produk->id_produk,
+    //                 'satuan' => $satuanBaru['satuan'],
+    //                 'harga_jual_eceran' => $satuanBaru['harga_jual_eceran'],
+    //                 'harga_jual_borongan' => $satuanBaru['harga_jual_borongan'],
+    //             ]);
+    //         }
+    //     }
+
+    //     // Hapus data lama yang tidak ada di data baru
+    //     if (count($dataLama) > 0) {
+    //         ProdukSatuan::where('id_produk', $produk->id_produk)
+    //             ->whereIn('satuan', array_keys($dataLama))
+    //             ->delete();
+    //     }
+
+    //     return response()->json('Data berhasil diperbarui', 200);
+    // }
 
     public function destroy($id)
     {

@@ -13,17 +13,25 @@ class Produk extends Model
     protected $primaryKey = 'id_produk';
     protected $guarded = [];
 
-    public function produkSatuan()
-    {
-        return $this->hasMany(ProdukSatuan::class, 'id_produk', 'id_produk');
-    }
+
 
     public function satuan()
     {
-        return $this->belongsTo(ProdukSatuan::class, 'id_produk_satuan');
+        return $this->belongsToMany(
+            SatuanProduk::class,
+            'produk_satuan',
+            'id_produk',
+            'id_satuan'
+        )->withPivot('harga_jual_eceran', 'harga_jual_borongan');
     }
 
-    public function kategori(){
+    public function produkSatuan()
+    {
+        return $this->hasMany(ProdukSatuan::class, 'id_produk');
+    }
+
+    public function kategori()
+    {
         return $this->belongsTo(Kategori::class,  'id_kategori');
     }
 }

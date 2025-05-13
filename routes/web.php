@@ -14,6 +14,7 @@ use App\Http\Controllers\{
     SettingController,
     SupplierController,
     UserController,
+    API\SatuanProdukController,
 };
 use Illuminate\Support\Facades\Route;
 
@@ -21,13 +22,13 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::group(['middleware' => 'auth'], function () {    
+Route::group(['middleware' => 'auth'], function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::group(['middleware' => 'level:1'], function () {
         Route::get('/kategori/data', [KategoriController::class, 'data'])->name('kategori.data');
         Route::resource('/kategori', KategoriController::class);
-        
+
         Route::get('/produk/export', [ProdukController::class, 'exportProduk'])->name('produk.export');
         Route::post('produk/import', [ProdukController::class, 'importProduk'])->name('produk.import');
         Route::get('/produk/data', [ProdukController::class, 'data'])->name('produk.data');
@@ -37,6 +38,11 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('/api/satuan-produk', function () {
             return response()->json(\App\Models\SatuanProduk::pluck('nama'));
         });
+
+        Route::get('/satuan-produk',          [SatuanProdukController::class, 'index']);
+        Route::post('/satuan-produk',          [SatuanProdukController::class, 'store']);
+        Route::put('/satuan-produk/{id}',     [SatuanProdukController::class, 'update']);
+        Route::delete('/satuan-produk/{id}',     [SatuanProdukController::class, 'destroy']);
 
         Route::get('/member/data', [MemberController::class, 'data'])->name('member.data');
         Route::post('/member/cetak-member', [MemberController::class, 'cetakMember'])->name('member.cetak_member');

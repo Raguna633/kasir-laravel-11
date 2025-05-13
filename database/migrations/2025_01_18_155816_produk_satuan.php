@@ -14,14 +14,16 @@ class ProdukSatuan extends Migration
     public function up()
     {
         Schema::create('produk_satuan', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedInteger('id_produk');
-            $table->string('satuan');
-            $table->integer('harga_jual_eceran')->default(0)->nullable();
-            $table->integer('harga_jual_borongan')->default(0)->nullable();
+            $table->id();                                              
+            $table->foreignId('id_produk')
+                  ->references('id_produk')->on('produk')
+                  ->onDelete('cascade');
+            $table->foreignId('id_satuan')
+                  ->references('id')->on('satuan_produk')
+                  ->onDelete('cascade');
+            $table->integer('harga_jual_eceran')->default(0);
+            $table->integer('harga_jual_borongan')->default(0);
             $table->timestamps();
-
-            $table->foreign('id_produk')->references('id_produk')->on('produk')->onDelete('cascade');
         });
     }
 

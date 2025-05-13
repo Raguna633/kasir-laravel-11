@@ -10,34 +10,28 @@ class ProdukExport implements FromCollection, WithHeadings
 {
     public function collection()
     {
-        $produk = Produk::with('produkSatuan')
-            ->leftJoin('kategori', 'kategori.id_kategori', 'produk.id_kategori')
-            ->select('produk.*', 'nama_kategori')
-            ->orderBy('kode_produk', 'asc')
-            ->get();
+        return Produk::with(['produkSatuan.masterSatuan','kategori'])
+            ->get()
+            ->map(function ($item) {
+                $eceran = $item->produkSatuan->map(fn($ps) =>
+                    $ps->masterSatuan->nama . ' : ' . $ps->harga_jual_eceran
+                )->join(', ');
 
-        $produk = $produk->map(function ($item) {
-            $satuanEceran = collect($item->produkSatuan)->map(function ($satuan) {
-                return $satuan->satuan . ' : ' . $satuan->harga_jual_eceran; // Format tanpa separator
-            })->join(', ');
+                $borongan = $item->produkSatuan->map(fn($ps) =>
+                    $ps->masterSatuan->nama . ' : ' . $ps->harga_jual_borongan
+                )->join(', ');
 
-            $satuanBorongan = collect($item->produkSatuan)->map(function ($satuan) {
-                return $satuan->satuan . ' : ' . $satuan->harga_jual_borongan; // Format tanpa separator
-            })->join(', ');
-
-            return [
-                'kode produk'              => $item->kode_produk,
-                'nama produk'              => $item->nama_produk,
-                'nama kategori'            => $item->nama_kategori,
-                'merk'                     => $item->merk,
-                'harga beli'               => $item->harga_beli, // Nilai asli (tanpa format)
-                'produk satuan eceran'     => $satuanEceran,
-                'produk satuan borongan'   => $satuanBorongan,
-                'stok'                     => $item->stok, // Nilai asli (tanpa format)
-            ];
-        });
-
-        return $produk;
+                return [
+                    'kode produk'            => $item->kode_produk,
+                    'nama produk'            => $item->nama_produk,
+                    'nama kategori'          => $item->kategori->nama_kategori,
+                    'merk'                   => $item->merk,
+                    'harga beli'             => $item->harga_beli,
+                    'produk satuan eceran'   => $eceran,
+                    'produk satuan borongan' => $borongan,
+                    'stok'                   => $item->stok,
+                ];
+            });
     }
 
     public function headings(): array

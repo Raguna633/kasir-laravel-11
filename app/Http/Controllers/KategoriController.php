@@ -50,8 +50,6 @@ class KategoriController extends Controller
             'produk'        => $produk->map(fn($p) => [
                 'kode'  => $p->kode_produk,
                 'nama'  => $p->nama_produk,
-                'beli'  => $p->harga_beli,
-                'jual'  => $p->harga_jual, // atau kolom Anda
                 'stok'  => $p->stok,
             ]),
         ]);

@@ -46,8 +46,6 @@
                                 <th>No</th>
                                 <th>Kode</th>
                                 <th>Nama</th>
-                                <th>Harga Beli</th>
-                                <th>Harga Jual</th>
                                 <th>Stok</th>
                             </tr>
                         </thead>
@@ -158,8 +156,6 @@
               <td>${idx + 1}</td>
               <td>${prd.kode}</td>
               <td>${prd.nama}</td>
-              <td>${prd.beli}</td>
-              <td>${prd.jual}</td>
               <td>${prd.stok}</td>
             </tr>
           `);
