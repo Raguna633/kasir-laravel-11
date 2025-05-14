@@ -38,7 +38,7 @@ class PenjualanDetailController extends Controller
     public function data($id)
     {
         $penjualan = Penjualan::findOrFail($id);
-        $detail = PenjualanDetail::with(['produk', 'produk.produkSatuan', 'produk.kategori'])
+        $detail = PenjualanDetail::with(['produk', 'produkSatuan.masterSatuan', 'produk.kategori'])
             ->where('id_penjualan', $id)
             ->get();
 
@@ -46,57 +46,50 @@ class PenjualanDetailController extends Controller
         $total = 0;
         $total_item = 0;
 
-        foreach ($detail as $item) {
-            // prepare dropdown for satuan
-            $satuanOptions = '<select class="form-control input-sm produk-satuan" data-id="' . $item->id_penjualan_detail . '">';
-            foreach ($item->produk->produkSatuan as $satuan) {
-                $selected = $item->id_produk_satuan == $satuan->id ? 'selected' : '';
-                $harga_satuan = $penjualan->tipe_pembeli === 'eceran'
-                    ? $satuan->harga_jual_eceran
-                    : $satuan->harga_jual_borongan;
-                $satuanOptions .= '<option value="' . $satuan->id . '" ' . $selected . '>' .
-                    $satuan->satuan . ' - Rp. ' . format_uang($harga_satuan) .
-                    '</option>';
+        foreach ($detail as $d) {
+            // bangun dropdown pilih satuan
+            $opts = '<select class="form-control produk-satuan" data-id="' . $d->id_penjualan_detail . '">';
+            foreach ($d->produk->produkSatuan as $ps) {
+                $sel = $d->id_produk_satuan == $ps->id ? 'selected' : '';
+                $unitName  = optional($ps->masterSatuan)->nama;
+                $harga = $penjualan->tipe_pembeli == 'eceran'
+                    ? $ps->harga_jual_eceran
+                    : $ps->harga_jual_borongan;
+                $opts .= "<option value=\"{$ps->id}\" {$sel}>"
+                    . "{$unitName} – Rp." . format_uang($harga)
+                    . "</option>";
             }
-            $satuanOptions .= '</select>';
+            $opts .= '</select>';
 
-            // determine harga jual sesuai satuan terpilih
-            $harga_jual = $item->produk->produkSatuan
-                ->where('id', $item->id_produk_satuan)
-                ->first();
-            if ($harga_jual) {
-                $harga_jual = $penjualan->tipe_pembeli === 'eceran'
-                    ? $harga_jual->harga_jual_eceran
-                    : $harga_jual->harga_jual_borongan;
-            } else {
-                $harga_jual = 0;
-            }
+            $harga_jual = optional($d->produkSatuan)->{$penjualan->tipe_pembeli == 'eceran'
+                ? 'harga_jual_eceran'
+                : 'harga_jual_borongan'} ?? 0;
 
             // input jumlah dengan presisi desimal
             $jumlahInput = '<input type="number" step="0.1" min="0.1" '
                 . 'class="form-control  input-sm quantity" '
-                . 'data-id="' . $item->id_penjualan_detail . '" '
-                . 'value="' . $item->jumlah . '">';
+                . 'data-id="' . $d->id_penjualan_detail . '" '
+                . 'value="' . $d->jumlah . '">';
 
             // hitung subtotal
-            $subtotal = ($harga_jual * $item->jumlah) * (1 - $item->diskon / 100);
+            $subtotal = ($harga_jual * $d->jumlah) * (1 - $d->diskon / 100);
 
             $data[] = [
-                'kode_produk'     => '<span class="label label-success">' . $item->produk->kode_produk . '</span>',
-                'nama_produk'     => $item->produk->nama_produk,
-                'produk_satuan'   => $satuanOptions,
+                'kode_produk'     => '<span class="label label-success">' . $d->produk->kode_produk . '</span>',
+                'nama_produk'     => $d->produk->nama_produk,
+                'produk_satuan'   => $opts,
                 'jumlah'          => $jumlahInput,
-                'max'             => $item->produk->stok, // restore stok + ukuran lama
-                'diskon'          => $item->diskon . '%',
+                'max'             => $d->produk->stok, // + $d->jumlah
+                'diskon'          => $d->diskon . '%',
                 'subtotal'        => 'Rp. ' . format_uang($subtotal),
                 'aksi'            => '<div class="btn-group">'
-                    . '<button onclick="deleteData(`' . route('transaksi.destroy', $item->id_penjualan_detail) . '`)" '
+                    . '<button onclick="deleteData(`' . route('transaksi.destroy', $d->id_penjualan_detail) . '`)" '
                     . 'class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>'
                     . '</div>',
             ];
 
             $total += $subtotal;
-            $total_item += $item->jumlah;
+            $total_item += $d->jumlah;
         }
 
         // tambahkan total & total_item tersembunyi

@@ -28,66 +28,30 @@ class PenjualanController extends Controller
         return datatables()
             ->of($penjualan)
             ->addIndexColumn()
-            ->addColumn('nama_pembeli', function ($penjualan) {
-                return $penjualan->nama_pembeli;
+            ->addColumn('nama_pembeli', fn($p) => $p->nama_pembeli)
+            ->addColumn('total_item', fn($p) => format_uang($p->total_item))
+            ->addColumn('satuan', function ($p) {
+                return $p->details
+                    ->pluck('produkSatuan.satuan')
+                    ->filter()
+                    ->unique()
+                    ->join(', ');
             })
-            ->addColumn('total_item', function ($penjualan) {
-                return format_uang($penjualan->total_item);
-            })
-            ->addColumn('satuan', function ($penjualan) {
-                return $penjualan->details->map(function ($detail) {
-                    return $detail->produkSatuan->satuan ?? 'Tidak ada satuan';
-                })->join(', ');
-            })
-            ->addColumn('total_harga', function ($penjualan) {
-                return 'Rp. ' . format_uang($penjualan->total_harga);
-            })
-            ->addColumn('tipe', function ($penjualan) {
-                return $penjualan->tipe_pembeli;
-            })
-            ->addColumn('bayar', function ($penjualan) {
-                return 'Rp. ' . format_uang($penjualan->bayar);
-            })
-            ->addColumn('tanggal', function ($penjualan) {
-                return tanggal_indonesia($penjualan->created_at, false);
-            })
-            ->addColumn('kode_member', function ($penjualan) {
-                $member = $penjualan->member->kode_member ?? '';
-                return '<span class="label label-success">' . $member . '</span>';
-            })
-            ->editColumn('diskon', function ($penjualan) {
-                return $penjualan->diskon . '%';
-            })
-            ->editColumn('kasir', function ($penjualan) {
-                return $penjualan->user->name ?? '';
-            })
-            ->addColumn('aksi', function ($penjualan) use ($setting) {
-                if (auth()->user()->level == 1) {
-                   if ($setting->tipe_nota == 1) {
-                    return '
-                    <div class="btn-group">
-                        <button onclick="showDetail(`' . route('penjualan.show', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></button>
-                        <button onclick="deleteData(`' . route('penjualan.destroy', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                        <button onclick="notaKecil(`' . route('penjualan.printnota_kecil', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-print"></i></button>
-                        </div>
-                    ';
-                   }
-                   else {
-                    return '
-                    <div class="btn-group">
-                        <button onclick="showDetail(`' . route('penjualan.show', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></button>
-                        <button onclick="deleteData(`' . route('penjualan.destroy', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-danger btn-flat"><i class="fa fa-trash"></i></button>
-                        <button onclick="notaBesar(`' . route('penjualan.printnota_besar', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-success btn-flat"><i class="fa fa-print"></i></button>
-                        </div>
-                    ';
-                   }
-                } else {
-                    return '
-                <div class="btn-group">
-                    <button onclick="showDetail(`' . route('penjualan.show', $penjualan->id_penjualan) . '`)" class="btn btn-xs btn-info btn-flat"><i class="fa fa-eye"></i></button>
-                </div>
-                ';
-                }
+            ->addColumn('total_harga', fn($p) => 'Rp. ' . format_uang($p->total_harga))
+            ->addColumn('tipe', fn($p) => $p->tipe_pembeli)
+            ->addColumn('bayar', fn($p) => 'Rp. ' . format_uang($p->bayar))
+            ->addColumn('tanggal', fn($p) => tanggal_indonesia($p->created_at, false))
+            ->addColumn('kode_member', fn($p) =>
+            '<span class="label label-success">' . ($p->member->kode_member ?? '') . '</span>')
+            ->editColumn('diskon', fn($p) => $p->diskon . '%')
+            ->editColumn('kasir', fn($p) => $p->user->name ?? '')
+            ->addColumn('aksi', function ($p) use ($setting) {
+                $show   = "<button onclick=\"showDetail('" . route('penjualan.show', $p->id_penjualan) . "')\" class=\"btn btn-xs btn-info\"><i class=\"fa fa-eye\"></i></button>";
+                $del    = "<button onclick=\"deleteData('" . route('penjualan.destroy', $p->id_penjualan) . "')\" class=\"btn btn-xs btn-danger\"><i class=\"fa fa-trash\"></i></button>";
+                $print  = $setting->tipe_nota == 1
+                    ? "<button onclick=\"notaKecil('" . route('penjualan.printnota_kecil', $p->id_penjualan) . "')\" class=\"btn btn-xs btn-success\"><i class=\"fa fa-print\"></i></button>"
+                    : "<button onclick=\"notaBesar('" . route('penjualan.printnota_besar', $p->id_penjualan) . "')\" class=\"btn btn-xs btn-success\"><i class=\"fa fa-print\"></i></button>";
+                return "<div class=\"btn-group\">{$show}{$del}{$print}</div>";
             })
             ->rawColumns(['aksi', 'kode_member'])
             ->make(true);
@@ -225,45 +189,32 @@ class PenjualanController extends Controller
 
     public function show($id)
     {
-        $penjualan = Penjualan::findOrFail($id);
-        $detail = PenjualanDetail::with(['produk', 'produk.produkSatuan'])
-            ->where('id_penjualan', $id)
-            ->get();
+        $penjualan = Penjualan::with(['details.produk', 'details.produkSatuan', 'produkSatuan.masterSatuan'])
+            ->findOrFail($id);
 
         return datatables()
-            ->of($detail)
+            ->of($penjualan->details)
             ->addIndexColumn()
-            ->addColumn('kode_produk', function ($detail) {
-                return '<span class="label label-success">' . $detail->produk->kode_produk . '</span>';
+            ->addColumn('kode_produk', fn($d) =>
+            '<span class="label label-success">' . $d->produk->kode_produk . '</span>')
+            ->addColumn('nama_produk', fn($d) => $d->produk->nama_produk)
+            ->addColumn('harga_jual', function ($d) use ($penjualan) {
+                $ps = $d->produkSatuan;
+                $unitName  = optional($ps->masterSatuan)->nama;
+                $harga = $penjualan->tipe_pembeli == 'eceran'
+                    ? $ps->harga_jual_eceran
+                    : $ps->harga_jual_borongan;
+                return 'Rp. ' . format_uang($harga) . ' - ' . $unitName;
             })
-            ->addColumn('nama_produk', function ($detail) {
-                return $detail->produk->nama_produk;
-            })
-            ->addColumn('harga_jual', function ($detail) use ($penjualan) {
-                // Ambil harga jual berdasarkan tipe pembeli
-                $harga_jual = 0;
-                foreach ($detail->produk->produkSatuan as $satuan) {
-                    if ($detail->id_produk_satuan == $satuan->id) {
-                        $harga_jual = $penjualan->tipe_pembeli == 'eceran' ? $satuan->harga_jual_eceran : $satuan->harga_jual_borongan;
-                    }
-                }
-                return 'Rp. ' . format_uang($harga_jual);
-            })
-            ->addColumn('jumlah', function ($detail) {
-                return format_uang($detail->jumlah) . ' ' . ($detail->produkSatuan->satuan ?? '');
-            })
-            ->addColumn('subtotal', function ($detail) use ($penjualan) {
-                // Ambil harga jual berdasarkan tipe pembeli
-                $harga_jual = 0;
-                foreach ($detail->produk->produkSatuan as $satuan) {
-                    if ($detail->id_produk_satuan == $satuan->id) {
-                        $harga_jual = $penjualan->tipe_pembeli == 'eceran' ? $satuan->harga_jual_eceran : $satuan->harga_jual_borongan;
-                    }
-                }
-
-                // Hitung subtotal setelah diskon
-                $subtotal = ($harga_jual * $detail->jumlah) * (1 - $detail->diskon / 100);
-                return 'Rp. ' . format_uang($subtotal);
+            ->addColumn('jumlah', fn($d) =>
+            format_uang($d->jumlah) . ' ' . $d->produkSatuan->satuan)
+            ->addColumn('subtotal', function ($d) use ($penjualan) {
+                $ps = $d->produkSatuan;
+                $harga = $penjualan->tipe_pembeli == 'eceran'
+                    ? $ps->harga_jual_eceran
+                    : $ps->harga_jual_borongan;
+                $sub   = ($harga * $d->jumlah) * (1 - $d->diskon / 100);
+                return 'Rp. ' . format_uang($sub);
             })
             ->rawColumns(['kode_produk'])
             ->make(true);

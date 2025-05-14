@@ -21,7 +21,6 @@
                         <th>Kode Member</th>
                         <th>Nama Pembeli</th>
                         <th>Total Item</th>
-                        <th>Satuan</th>
                         <th>Total Harga</th>
                         <th>Diskon</th>
                         <th>Total Bayar</th>
@@ -70,7 +69,7 @@
                 {data: 'kode_member'},
                 {data: 'nama_pembeli'},
                 {data: 'total_item'},
-                {data: 'satuan'},
+                // {data: 'satuan'},
                 {data: 'total_harga'},
                 {data: 'diskon'},
                 {data: 'bayar'},

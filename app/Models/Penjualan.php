@@ -28,8 +28,13 @@ class Penjualan extends Model
         return $this->hasMany(PenjualanDetail::class, 'id_penjualan', 'id_penjualan');
     }
 
-    public function satuan()
+    public function produkSatuan()
     {
-        return $this->belongsTo(ProdukSatuan::class, 'id_produk_satuan');
+        return $this->belongsTo(ProdukSatuan::class, 'id_produk_satuan', 'id');
     }
+
+    // public function satuan()
+    // {
+    //     return $this->belongsTo(ProdukSatuan::class, 'id_produk_satuan');
+    // }
 }
