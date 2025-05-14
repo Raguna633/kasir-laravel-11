@@ -232,7 +232,7 @@
                     $('#produk-satuan-container').empty();
                     listSatuan.forEach((ps, idx) => {
                         const namaSatuan = ps.satuan; // <— sekarang pasti ada
-                        const isDefault = namaSatuan === 'pcs';
+                        const isDefault = namaSatuan === 'null';
                         const isCustom = !satuanDefault.includes(namaSatuan);
 
                         // Bangun field select/input
