@@ -425,6 +425,7 @@
                 });
             table2 = $('.table-produk').DataTable();
 
+            // input quantity produk bisa desimal
             $(document).on('change', '.quantity', function() {
                 let id = $(this).data('id');
                 // ganti koma jadi titik:
@@ -456,11 +457,6 @@
                         '_method': 'put',
                         'jumlah': jumlah
                     })
-                    // .done(response => {
-                    //     $(this).on('blur', function() {
-                    //         table.ajax.reload(() => loadForm($('#diskon').val()));
-                    //     });
-                    // })
                     .fail(errors => {
                         alert('Jumlah melebihi stok yang tersedia');
                         return;

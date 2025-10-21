@@ -148,6 +148,7 @@ class PenjualanDetailController extends Controller
 
         $detail->id_produk_satuan    = $satuan->id;
         $detail->harga_jual_eceran   = $satuan->harga_jual_eceran;
+        $detail->harga_jual_eceran   = $satuan->harga_jual_borongan;
         $detail->jumlah              = $jumlahBaru;
         $detail->diskon              = 0;
         $detail->subtotal            = $satuan->harga_jual_eceran * $jumlahBaru;

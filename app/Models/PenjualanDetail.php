@@ -16,6 +16,7 @@ class PenjualanDetail extends Model
     protected $casts = [
         'jumlah' => 'float',
         'harga_jual_eceran' => 'float',
+        'harga_jual_borongan' => 'float',
     ];
 
     public function produk()
