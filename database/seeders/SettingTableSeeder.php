@@ -23,6 +23,7 @@ class SettingTableSeeder extends Seeder
             'diskon' => 5,
             'path_logo' => '/img/tefatie.png',
             'path_kartu_member' => '/img/member.png',
+            'fitur_pelayan' => true,
         ]);
     }
 }
