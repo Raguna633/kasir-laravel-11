@@ -78,6 +78,18 @@
                             <span class="help-block with-errors"></span>
                         </div>
                     </div>
+                    <div class="form-group row">
+                        <label for="fitur_pelayan" class="col-lg-2 control-label">Fitur Pelayan</label>
+                        <div class="col-lg-6">
+                            <div class="checkbox">
+                                <label>
+                                    <input type="checkbox" name="fitur_pelayan" id="fitur_pelayan" value="1">
+                                    Aktifkan fitur poin pelayan pada sistem POS
+                                </label>
+                            </div>
+                            <span class="help-block">Centang untuk mengaktifkan fitur poin untuk pelayan pada transaksi penjualan</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="box-footer text-right">
                     <button class="btn btn-sm btn-flat btn-primary"><i class="fa fa-save"></i> Simpan Perubahan</button>
@@ -127,8 +139,16 @@
                 $('[name=alamat]').val(response.alamat);
                 $('[name=diskon]').val(response.diskon);
                 $('[name=tipe_nota]').val(response.tipe_nota);
+
+                // Handle fitur_pelayan checkbox
+                if (response.fitur_pelayan) {
+                    $('[name=fitur_pelayan]').prop('checked', true);
+                } else {
+                    $('[name=fitur_pelayan]').prop('checked', false);
+                }
+
                 $('title').text(response.nama_perusahaan + ' | Pengaturan');
-                
+
                 let words = response.nama_perusahaan.split(' ');
                 let word  = '';
                 words.forEach(w => {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Models\Pengeluaran;
 
 class PengeluaranController extends Controller
@@ -55,9 +56,22 @@ class PengeluaranController extends Controller
      */
     public function store(Request $request)
     {
-        $pengeluaran = Pengeluaran::create($request->all());
+        $request->validate([
+            'deskripsi' => 'required|string|max:255',
+            'nominal' => 'required|numeric|min:0',
+        ]);
 
-        return response()->json('Data berhasil disimpan', 200);
+        try {
+            Pengeluaran::create([
+                'deskripsi' => $request->deskripsi,
+                'nominal' => $request->nominal,
+            ]);
+
+            return response()->json('Data berhasil disimpan', 200);
+        } catch (\Exception $e) {
+            Log::error('Error creating pengeluaran: ' . $e->getMessage());
+            return response()->json('Terjadi kesalahan saat menyimpan data', 500);
+        }
     }
 
     /**
@@ -93,9 +107,23 @@ class PengeluaranController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $pengeluaran = Pengeluaran::find($id)->update($request->all());
+        $request->validate([
+            'deskripsi' => 'required|string|max:255',
+            'nominal' => 'required|numeric|min:0',
+        ]);
 
-        return response()->json('Data berhasil disimpan', 200);
+        try {
+            $pengeluaran = Pengeluaran::findOrFail($id);
+            $pengeluaran->update([
+                'deskripsi' => $request->deskripsi,
+                'nominal' => $request->nominal,
+            ]);
+
+            return response()->json('Data berhasil disimpan', 200);
+        } catch (\Exception $e) {
+            Log::error('Error updating pengeluaran: ' . $e->getMessage());
+            return response()->json('Terjadi kesalahan saat menyimpan data', 500);
+        }
     }
 
     /**

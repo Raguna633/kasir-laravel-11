@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Member;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class MemberController extends Controller
@@ -44,17 +45,28 @@ class MemberController extends Controller
 
     public function store(Request $request)
     {
-        $member = Member::latest()->first() ?? new Member();
-        $kode_member = (int) $member->kode_member +1;
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'telepon' => 'nullable|string|max:20',
+            'alamat' => 'nullable|string|max:500',
+        ]);
 
-        $member = new Member();
-        $member->kode_member = tambah_nol_didepan($kode_member, 5);
-        $member->nama = $request->nama;
-        $member->telepon = $request->telepon;
-        $member->alamat = $request->alamat;
-        $member->save();
+        try {
+            $member = Member::latest()->first() ?? new Member();
+            $kode_member = (int) $member->kode_member + 1;
 
-        return response()->json('Data berhasil disimpan', 200);
+            Member::create([
+                'kode_member' => tambah_nol_didepan($kode_member, 5),
+                'nama' => $request->nama,
+                'telepon' => $request->telepon,
+                'alamat' => $request->alamat,
+            ]);
+
+            return response()->json('Data berhasil disimpan', 200);
+        } catch (\Exception $e) {
+            Log::error('Error creating member: ' . $e->getMessage());
+            return response()->json('Terjadi kesalahan saat menyimpan data', 500);
+        }
     }
 
     public function show($id)
@@ -66,9 +78,25 @@ class MemberController extends Controller
 
     public function update(Request $request, $id)
     {
-        $member = Member::find($id)->update($request->all());
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'telepon' => 'nullable|string|max:20',
+            'alamat' => 'nullable|string|max:500',
+        ]);
 
-        return response()->json('Data berhasil disimpan', 200);
+        try {
+            $member = Member::findOrFail($id);
+            $member->update([
+                'nama' => $request->nama,
+                'telepon' => $request->telepon,
+                'alamat' => $request->alamat,
+            ]);
+
+            return response()->json('Data berhasil disimpan', 200);
+        } catch (\Exception $e) {
+            Log::error('Error updating member: ' . $e->getMessage());
+            return response()->json('Terjadi kesalahan saat menyimpan data', 500);
+        }
     }
 
     public function destroy($id)

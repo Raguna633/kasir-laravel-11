@@ -163,6 +163,24 @@
                                         </div>
                                     </div>
                                 </div>
+                                @php
+                                    $setting = \App\Models\Setting::first();
+                                @endphp
+                                @if($setting && $setting->fitur_pelayan)
+                                <div class="form-group row">
+                                    <label for="id_pelayan" class="col-lg-2 control-label">Pelayan</label>
+                                    <div class="col-lg-8">
+                                        <select name="id_pelayan" id="id_pelayan" class="form-control">
+                                            <option value="">Pilih Pelayan</option>
+                                            @foreach(\App\Models\Pelayan::all() as $pelayan)
+                                                <option value="{{ $pelayan->id }}" {{ $penjualan->id_pelayan == $pelayan->id ? 'selected' : '' }}>
+                                                    {{ $pelayan->nama }} ({{ $pelayan->poin }} poin)
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="form-group row">
                                     <label for="diskon" class="col-lg-2 control-label">Diskon</label>
                                     <div class="col-lg-8">

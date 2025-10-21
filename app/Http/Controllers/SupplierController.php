@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Models\Supplier;
 
 class SupplierController extends Controller
@@ -33,9 +34,24 @@ class SupplierController extends Controller
 
     public function store(Request $request)
     {
-        $supplier = Supplier::create($request->all());
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'telepon' => 'nullable|string|max:20',
+            'alamat' => 'nullable|string|max:500',
+        ]);
 
-        return response()->json('Data berhasil disimpan', 200);
+        try {
+            Supplier::create([
+                'nama' => $request->nama,
+                'telepon' => $request->telepon,
+                'alamat' => $request->alamat,
+            ]);
+
+            return response()->json('Data berhasil disimpan', 200);
+        } catch (\Exception $e) {
+            Log::error('Error creating supplier: ' . $e->getMessage());
+            return response()->json('Terjadi kesalahan saat menyimpan data', 500);
+        }
     }
 
     public function show($id)
@@ -47,9 +63,25 @@ class SupplierController extends Controller
 
     public function update(Request $request, $id)
     {
-        $supplier = Supplier::find($id)->update($request->all());
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'telepon' => 'nullable|string|max:20',
+            'alamat' => 'nullable|string|max:500',
+        ]);
 
-        return response()->json('Data berhasil disimpan', 200);
+        try {
+            $supplier = Supplier::findOrFail($id);
+            $supplier->update([
+                'nama' => $request->nama,
+                'telepon' => $request->telepon,
+                'alamat' => $request->alamat,
+            ]);
+
+            return response()->json('Data berhasil disimpan', 200);
+        } catch (\Exception $e) {
+            Log::error('Error updating supplier: ' . $e->getMessage());
+            return response()->json('Terjadi kesalahan saat menyimpan data', 500);
+        }
     }
 
     public function destroy($id)
