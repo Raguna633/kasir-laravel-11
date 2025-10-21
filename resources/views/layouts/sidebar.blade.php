@@ -45,6 +45,11 @@
                         <i class="fa fa-truck"></i> <span>Supplier</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('pelayan.index') }}">
+                        <i class="fa fa-users"></i> <span>Pelayan</span>
+                    </a>
+                </li>
                 <li class="header">TRANSAKSI</li>
                 <li>
                     <a href="{{ route('pengeluaran.index') }}">
@@ -109,4 +114,3 @@
         window.location.href = '{{ route('transaksi.baru') }}';
     });
 </script>
-

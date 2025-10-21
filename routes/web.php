@@ -4,6 +4,7 @@ use App\Http\Controllers\{
     DashboardController,
     KategoriController,
     LaporanController,
+    PelayanController,
     ProdukController,
     MemberController,
     PengeluaranController,
@@ -50,6 +51,9 @@ Route::group(['middleware' => 'auth'], function () {
 
         Route::get('/supplier/data', [SupplierController::class, 'data'])->name('supplier.data');
         Route::resource('/supplier', SupplierController::class);
+
+        Route::get('/pelayan/data', [PelayanController::class, 'data'])->name('pelayan.data');
+        Route::resource('/pelayan', PelayanController::class);
 
         Route::get('/pengeluaran/data', [PengeluaranController::class, 'data'])->name('pengeluaran.data');
         Route::resource('/pengeluaran', PengeluaranController::class);
