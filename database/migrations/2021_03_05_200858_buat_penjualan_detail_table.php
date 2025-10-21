@@ -19,7 +19,7 @@ class BuatPenjualanDetailTable extends Migration
             $table->integer('id_produk');
             $table->integer('harga_jual_eceran')->nullable();
             $table->integer('harga_jual_borongan')->nullable();
-            $table->integer('jumlah');
+            $table->decimal('jumlah', 10, 2);
             $table->tinyInteger('diskon')->default(0);
             $table->integer('subtotal');
             $table->boolean('status')->default(0);
