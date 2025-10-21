@@ -44,6 +44,12 @@
             <td>Kode Member</td>
             <td>: {{ $penjualan->member->kode_member ?? '' }}</td>
         </tr>
+        @if($penjualan->pelayan)
+        <tr>
+            <td>Pelayan</td>
+            <td>: {{ $penjualan->pelayan->nama }}</td>
+        </tr>
+        @endif
     </table>
 
     <table class="data" width="100%">

@@ -25,6 +25,7 @@ class SettingController extends Controller
         $setting->alamat = $request->alamat;
         $setting->diskon = $request->diskon;
         $setting->tipe_nota = $request->tipe_nota;
+        $setting->fitur_pelayan = $request->has('fitur_pelayan') ? $request->fitur_pelayan : false;
 
         if ($request->hasFile('path_logo')) {
             $file = $request->file('path_logo');

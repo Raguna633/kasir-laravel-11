@@ -11,7 +11,25 @@ class Penjualan extends Model
 
     protected $table = 'penjualan';
     protected $primaryKey = 'id_penjualan';
-    protected $guarded = [];
+    protected $fillable = [
+        'id_member',
+        'id_pelayan',
+        'total_item',
+        'total_harga',
+        'diskon',
+        'bayar',
+        'diterima',
+        'hutang',
+        'tipe_pembeli',
+        'nama_pembeli',
+        'status',
+        'ishutang',
+        'id_user',
+    ];
+
+    // Constants for status values
+    const STATUS_DRAFT = 0;
+    const STATUS_FINAL = 1;
 
     public function member()
     {
@@ -20,7 +38,7 @@ class Penjualan extends Model
 
     public function user()
     {
-        return $this->hasOne(User::class, 'id', 'id_user');
+        return $this->belongsTo(User::class, 'id_user', 'id');
     }
 
     public function details()
@@ -31,6 +49,11 @@ class Penjualan extends Model
     public function produkSatuan()
     {
         return $this->belongsTo(ProdukSatuan::class, 'id_produk_satuan', 'id');
+    }
+
+    public function pelayan()
+    {
+        return $this->belongsTo(Pelayan::class, 'id_pelayan', 'id');
     }
 
     // public function satuan()

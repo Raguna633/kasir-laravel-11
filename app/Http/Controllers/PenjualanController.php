@@ -6,7 +6,10 @@ use App\Models\Member;
 use App\Models\Produk;
 use App\Models\Setting;
 use App\Models\Penjualan;
+use App\Models\Pelayan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Models\PenjualanDetail;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -67,8 +70,8 @@ class PenjualanController extends Controller
         $penjualan->bayar = 0;
         $penjualan->diterima = 0;
         $penjualan->tipe_pembeli = 'eceran';
-        $penjualan->status = 0; // Set status sebagai draft
-        $penjualan->id_user = auth()->id();
+        $penjualan->status = Penjualan::STATUS_DRAFT;
+        $penjualan->id_user = Auth::id();
         $penjualan->save();
 
         session(['id_penjualan' => $penjualan->id_penjualan]);
@@ -86,7 +89,7 @@ class PenjualanController extends Controller
         return response()->json(['success' => false]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $request->validate([
             'total_item' => 'required|numeric|min:1',
@@ -94,77 +97,99 @@ class PenjualanController extends Controller
             'nama_pembeli' => 'required|string|max:12',
             'diskon' => 'nullable|numeric|min:0',
             'diterima' => 'required|numeric|min:0',
+            'id_pelayan' => 'nullable|exists:pelayan,id',
         ]);
 
-        $penjualan = Penjualan::findOrFail($request->id_penjualan);
+        try {
+            $penjualan = Penjualan::findOrFail($request->id_penjualan);
 
-        // Periksa apakah transaksi disimpan sebagai hutang
-        if ($request->has('simpan_sebagai_hutang')) {
-            $penjualan->id_member = $request->id_member;
-            $penjualan->total_item = $request->total_item;
-            $penjualan->total_harga = $request->total;
-            $penjualan->diskon = $request->diskon;
-            $penjualan->bayar = $request->bayar;
-            $penjualan->diterima = $request->diterima;
-            $penjualan->hutang = $penjualan->total_harga - ($penjualan->diskon / 100 * $penjualan->total_harga) - $request->diterima;
-            $penjualan->tipe_pembeli = $request->tipe_pembeli;
-            $penjualan->nama_pembeli = $request->nama_pembeli;
-            $penjualan->status = 0; // Tetap draft
-            $penjualan->ishutang = 1;
+            // Periksa apakah transaksi disimpan sebagai hutang
+            if ($request->has('simpan_sebagai_hutang')) {
+                $penjualan->update([
+                    'id_member' => $request->id_member,
+                    'id_pelayan' => $request->id_pelayan,
+                    'total_item' => $request->total_item,
+                    'total_harga' => $request->total,
+                    'diskon' => $request->diskon,
+                    'bayar' => $request->bayar,
+                    'diterima' => $request->diterima,
+                    'hutang' => $request->total - ($request->diskon / 100 * $request->total) - $request->diterima,
+                    'tipe_pembeli' => $request->tipe_pembeli,
+                    'nama_pembeli' => $request->nama_pembeli,
+                    'status' => Penjualan::STATUS_DRAFT,
+                    'ishutang' => 1,
+                ]);
 
-            // Perbarui stok produk
-            $detail = PenjualanDetail::where('id_penjualan', $penjualan->id_penjualan)->get();
-            foreach ($detail as $item) {
-                $produk = Produk::find($item->id_produk);
-                $produk->stok -= $item->jumlah; // Kurangi stok
-                $produk->update();
-            }
-
-            $penjualan->update();
-
-            return response()->json(['success' => true, 'message' => 'Transaksi disimpan sebagai hutang.']);
-        }
-
-        // Logika default untuk menyimpan transaksi
-        if ($penjualan->status === 0) { // Jika masih draft
-            $penjualan->id_member = $request->id_member;
-            $penjualan->total_item = $request->total_item;
-            $penjualan->total_harga = $request->total;
-            $penjualan->diskon = $request->diskon;
-            $penjualan->bayar = $request->bayar;
-            $penjualan->diterima = $request->diterima;
-            $penjualan->tipe_pembeli = $request->tipe_pembeli;
-            $penjualan->nama_pembeli = $request->nama_pembeli;
-
-            if ($request->diterima < $penjualan->total_harga) {
-                $penjualan->hutang = $penjualan->total_harga - ($penjualan->diskon / 100 * $penjualan->total_harga) - $request->diterima;
-                $penjualan->status = 0; // Tetap draft
-            } else {
-                $penjualan->hutang = 0;
-                $penjualan->status = 1; // Final
-            }
-
-            $penjualan->update();
-
-
-            // Perbarui stok hanya jika status final
-            if ($penjualan->status === 1 && $penjualan->ishutang === 0) {
+                // Perbarui stok produk
                 $detail = PenjualanDetail::where('id_penjualan', $penjualan->id_penjualan)->get();
                 foreach ($detail as $item) {
                     $produk = Produk::find($item->id_produk);
-                    $produk->stok -= $item->jumlah;
-                    $produk->update();
+                    if ($produk) {
+                        $produk->stok -= $item->jumlah;
+                        $produk->update();
+                    }
                 }
-            }
-        } else {
-            return redirect()->back()->withErrors(['error' => 'Transaksi telah selesai dan tidak dapat diperbarui.']);
-        }
 
-        if ($penjualan->diterima > 0) {
-            return redirect()->route('transaksi.selesai');
-        } else {
-            return redirect()->route('transaksi.baru');
-        };
+                return response()->json(['success' => true, 'message' => 'Transaksi disimpan sebagai hutang.']);
+            }
+
+            // Logika default untuk menyimpan transaksi
+            if ($penjualan->status === Penjualan::STATUS_DRAFT) {
+                $updateData = [
+                    'id_member' => $request->id_member,
+                    'id_pelayan' => $request->id_pelayan,
+                    'total_item' => $request->total_item,
+                    'total_harga' => $request->total,
+                    'diskon' => $request->diskon,
+                    'bayar' => $request->bayar,
+                    'diterima' => $request->diterima,
+                    'tipe_pembeli' => $request->tipe_pembeli,
+                    'nama_pembeli' => $request->nama_pembeli,
+                ];
+
+                if ($request->diterima < $request->total) {
+                    $updateData['hutang'] = $request->total - ($request->diskon / 100 * $request->total) - $request->diterima;
+                    $updateData['status'] = Penjualan::STATUS_DRAFT;
+                } else {
+                    $updateData['hutang'] = 0;
+                    $updateData['status'] = Penjualan::STATUS_FINAL;
+
+                // Increment poin pelayan jika transaksi final dan ada pelayan
+                $setting = Setting::first();
+                if ($setting && $setting->fitur_pelayan && $request->id_pelayan) {
+                    $pelayan = Pelayan::find($request->id_pelayan);
+                    if ($pelayan) {
+                        $pelayan->increment('poin');
+                    }
+                }
+                }
+
+                $penjualan->update($updateData);
+
+                // Perbarui stok hanya jika status final
+                if ($penjualan->status === Penjualan::STATUS_FINAL && $penjualan->ishutang === 0) {
+                    $detail = PenjualanDetail::where('id_penjualan', $penjualan->id_penjualan)->get();
+                    foreach ($detail as $item) {
+                        $produk = Produk::find($item->id_produk);
+                        if ($produk) {
+                            $produk->stok -= $item->jumlah;
+                            $produk->update();
+                        }
+                    }
+                }
+            } else {
+                return redirect()->back()->withErrors(['error' => 'Transaksi telah selesai dan tidak dapat diperbarui.']);
+            }
+
+            if ($penjualan->diterima > 0) {
+                return redirect()->route('transaksi.selesai');
+            } else {
+                return redirect()->route('transaksi.baru');
+            }
+        } catch (\Exception $e) {
+            Log::error('Error storing penjualan: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Terjadi kesalahan saat menyimpan transaksi.']);
+        }
     }
 
     public function getDraftTransaction($id_penjualan)
@@ -172,14 +197,14 @@ class PenjualanController extends Controller
         // Ambil data transaksi beserta detail produk dan satuan terkait
         $penjualan = Penjualan::with(['details.produk', 'details.produkSatuan', 'member'])
             ->where('id_penjualan', $id_penjualan)
-            ->where('status', 0)
+            ->where('status', Penjualan::STATUS_DRAFT)
             ->firstOrFail();
 
         $produk = Produk::orderBy('nama_produk')->get();
         $member = Member::orderBy('nama')->get();
         $memberSelected = $penjualan->member ?? new Member();
         $diskon = Setting::first()->diskon ?? 0;
-        $drafts = Penjualan::where('status', 0)->get();
+        $drafts = Penjualan::where('status', Penjualan::STATUS_DRAFT)->get();
 
         session(['id_penjualan' => $penjualan->id_penjualan]);
         return view('penjualan_detail.index', compact('penjualan', 'id_penjualan', 'produk', 'drafts', 'member', 'diskon', 'memberSelected'));

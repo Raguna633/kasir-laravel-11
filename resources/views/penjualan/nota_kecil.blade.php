@@ -71,6 +71,11 @@
     <p style="float: left">Nama Pembeli:</p>
     <p style="float: right; text-transform: capitalize;" >{{ $penjualan->nama_pembeli }}</p>
     <div class="clear-both" style="clear: both;"></div>
+    @if($penjualan->pelayan)
+    <p style="float: left">Pelayan:</p>
+    <p style="float: right; text-transform: capitalize;" >{{ $penjualan->pelayan->nama }}</p>
+    <div class="clear-both" style="clear: both;"></div>
+    @endif
     <p>No: {{ tambah_nol_didepan($penjualan->id_penjualan, 10) }}</p>
     <p class="text-center">===================================</p>
 
